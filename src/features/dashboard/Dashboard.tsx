@@ -1,55 +1,216 @@
-import React, { useEffect, useState } from 'react';
-// import { dbService } from '../../services/firebaseService';
+import React, { useState, useEffect } from 'react';
+import { useRole, UserRole } from '../../context/RoleContext';
+import {
+  Users,
+  TrendingUp,
+  Target,
+  ArrowUpRight,
+  ArrowDownRight,
+  Activity
+} from 'lucide-react';
+import {
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  AreaChart,
+  Area
+} from 'recharts';
+
+// Mock Data Generators
+const generateGrowthData = (base: number, volatility: number) => {
+  return Array.from({ length: 7 }, (_, i) => ({
+    name: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][i],
+    value: Math.floor(base + Math.random() * volatility)
+  }));
+};
+
+const STATS_DATA = {
+  PUSAT: {
+    totalLeads: 15420,
+    leadsChange: '+12.5%',
+    conversion: '2.4%',
+    conversionChange: '-0.1%',
+    activeCampaigns: 24,
+    campaignsChange: '+3',
+    chartData: generateGrowthData(500, 100)
+  },
+  CABANG: {
+    totalLeads: 1250,
+    leadsChange: '+5.2%',
+    conversion: '4.8%',
+    conversionChange: '+1.2%',
+    activeCampaigns: 5,
+    campaignsChange: '+1',
+    chartData: generateGrowthData(50, 20)
+  },
+  MITRA: {
+    totalLeads: 48,
+    leadsChange: '+8.5%',
+    conversion: '15.2%',
+    conversionChange: '+2.5%',
+    activeCampaigns: 1,
+    campaignsChange: '0',
+    chartData: generateGrowthData(5, 5)
+  }
+};
+
+const StatCard = ({ title, value, change, icon: Icon, color }: any) => {
+  const isPositive = change.startsWith('+');
+  return (
+    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+      <div className="flex justify-between items-start">
+        <div>
+          <p className="text-sm font-medium text-gray-500">{title}</p>
+          <h3 className="text-2xl font-bold text-gray-900 mt-2">{value}</h3>
+        </div>
+        <div className={`p-3 rounded-lg ${color}`}>
+          <Icon className="w-6 h-6 text-white" />
+        </div>
+      </div>
+      <div className="mt-4 flex items-center">
+        <span className={`flex items-center text-sm font-medium ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
+          {isPositive ? <ArrowUpRight className="w-4 h-4 mr-1" /> : <ArrowDownRight className="w-4 h-4 mr-1" />}
+          {change}
+        </span>
+        <span className="text-sm text-gray-400 ml-2">vs last week</span>
+      </div>
+    </div>
+  );
+};
 
 export const Dashboard: React.FC = () => {
-  const [loading, setLoading] = useState(true);
-  // const [data, setData] = useState<any[]>([]);
+  const { role } = useRole();
+  const [data, setData] = useState(STATS_DATA['PUSAT']);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        // Example: Fetching from a 'stats' collection
-        // In a real app, this would likely be empty until configured
-        // const stats = await dbService.getCollection('stats');
-        // setData(stats);
-
-        // Simulating delay for demo
-        setTimeout(() => setLoading(false), 1000);
-      } catch (error) {
-        console.error("Error loading dashboard", error);
-        setLoading(false);
-      }
-    };
-
-    loadData();
-  }, []);
+    // Simulate API fetch when role changes
+    setLoading(true);
+    const timer = setTimeout(() => {
+      setData(STATS_DATA[role as UserRole]);
+      setLoading(false);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [role]);
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-gray-800">Dashboard</h2>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {role === 'PUSAT' && 'Headquarters Overview'}
+            {role === 'CABANG' && 'Branch Performance'}
+            {role === 'MITRA' && 'Partner Dashboard'}
+          </h1>
+          <p className="text-gray-500 mt-1">Real-time monitoring and analytics</p>
+        </div>
+        <button className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+          Download Report
+        </button>
+      </div>
 
       {loading ? (
-        <div className="text-gray-500">Loading data...</div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Mock Widget 1 */}
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-            <h3 className="text-gray-500 text-sm font-medium">Total Users</h3>
-            <p className="text-3xl font-bold text-gray-900 mt-2">1,234</p>
-          </div>
-
-          {/* Mock Widget 2 */}
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-            <h3 className="text-gray-500 text-sm font-medium">Revenue</h3>
-            <p className="text-3xl font-bold text-green-600 mt-2">$12,345</p>
-          </div>
-
-          {/* Mock Widget 3 */}
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-            <h3 className="text-gray-500 text-sm font-medium">Active Sessions</h3>
-            <p className="text-3xl font-bold text-blue-600 mt-2">42</p>
-          </div>
+        <div className="h-64 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
+      ) : (
+        <>
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <StatCard
+              title="Total Leads"
+              value={data.totalLeads.toLocaleString()}
+              change={data.leadsChange}
+              icon={Users}
+              color="bg-blue-500"
+            />
+            <StatCard
+              title="Conversion Rate"
+              value={data.conversion}
+              change={data.conversionChange}
+              icon={Target}
+              color="bg-green-500"
+            />
+            <StatCard
+              title="Active Campaigns"
+              value={data.activeCampaigns}
+              change={data.campaignsChange}
+              icon={Activity}
+              color="bg-purple-500"
+            />
+          </div>
+
+          {/* Charts Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+              <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                <TrendingUp className="w-5 h-5 mr-2 text-gray-500" />
+                Lead Growth Trend
+              </h3>
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={data.chartData}>
+                    <defs>
+                      <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.1}/>
+                        <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#6B7280'}} />
+                    <YAxis axisLine={false} tickLine={false} tick={{fill: '#6B7280'}} />
+                    <Tooltip
+                      contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="value"
+                      stroke="#3B82F6"
+                      strokeWidth={3}
+                      fillOpacity={1}
+                      fill="url(#colorValue)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Role Specific Widget */}
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+              <h3 className="text-lg font-bold text-gray-800 mb-4">
+                {role === 'PUSAT' && 'Top Performing Branches'}
+                {role === 'CABANG' && 'Top Partners'}
+                {role === 'MITRA' && 'Recent Activities'}
+              </h3>
+              <div className="space-y-4">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer">
+                    <div className="flex items-center">
+                      <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-bold">
+                        {role === 'MITRA' ? 'L' : i}
+                      </div>
+                      <div className="ml-3">
+                        <p className="text-sm font-medium text-gray-900">
+                          {role === 'PUSAT' && `Branch Jakarta South ${i}`}
+                          {role === 'CABANG' && `Partner Ahmad ${i}`}
+                          {role === 'MITRA' && `New Lead: Budi Santoso`}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {role === 'MITRA' ? 'Just now' : `${Math.floor(Math.random() * 100)} Leads generated`}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      {role === 'MITRA' ? 'Pending' : '+12%'}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );
