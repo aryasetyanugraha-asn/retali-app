@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { dbService } from '../../services/firebaseService';
 import {
   Search,
   Filter,
@@ -24,14 +25,6 @@ interface Lead {
   lastContact: string;
   notes: string;
 }
-
-const MOCK_LEADS: Lead[] = [
-  { id: '1', name: 'Budi Santoso', phone: '+62 812-3456-7890', email: 'budi@example.com', platform: 'WHATSAPP', status: 'HOT', lastContact: '2 mins ago', notes: 'Interested in Umrah Ramadhan' },
-  { id: '2', name: 'Siti Aminah', phone: '+62 813-4567-8901', email: 'siti@example.com', platform: 'INSTAGRAM', status: 'NEW', lastContact: '15 mins ago', notes: 'Asked about pricing' },
-  { id: '3', name: 'Rudi Hermawan', phone: '+62 811-2345-6789', email: 'rudi@example.com', platform: 'FACEBOOK', status: 'WARM', lastContact: '1 hour ago', notes: 'Comparing packages' },
-  { id: '4', name: 'Dewi Lestari', phone: '+62 856-7890-1234', email: 'dewi@example.com', platform: 'TIKTOK', status: 'COLD', lastContact: '1 day ago', notes: 'No response' },
-  { id: '5', name: 'Ahmad Dahlan', phone: '+62 812-9876-5432', email: 'ahmad@example.com', platform: 'WEB', status: 'HOT', lastContact: '2 days ago', notes: 'Ready to book' },
-];
 
 const StatusBadge = ({ status }: { status: LeadStatus }) => {
   const styles = {
@@ -59,15 +52,46 @@ const PlatformIcon = ({ platform }: { platform: Platform }) => {
 };
 
 export const LeadsList: React.FC = () => {
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<LeadStatus | 'ALL'>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
 
-  const filteredLeads = MOCK_LEADS.filter(lead => {
+  useEffect(() => {
+    const unsubscribe = dbService.subscribeToCollection('leads', (data) => {
+      // Map Firestore data to Lead interface
+      const mappedLeads = data.map(doc => ({
+        id: doc.id,
+        name: doc.name || 'Unknown',
+        phone: doc.phone || '',
+        email: doc.email || '',
+        platform: doc.source || 'WEB', // Assuming 'source' in DB maps to 'platform'
+        status: doc.status || 'NEW',
+        lastContact: doc.createdAt ? new Date(doc.createdAt.seconds * 1000).toLocaleDateString() : 'N/A',
+        notes: doc.notes || ''
+      })) as Lead[];
+
+      setLeads(mappedLeads);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const filteredLeads = leads.filter(lead => {
     const matchesStatus = filter === 'ALL' || lead.status === filter;
     const matchesSearch = lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           lead.phone.includes(searchTerm);
     return matchesStatus && matchesSearch;
   });
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
