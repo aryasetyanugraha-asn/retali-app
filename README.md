@@ -1,5 +1,26 @@
 # React + TypeScript + Vite
 
+## Project Setup
+
+### 1. Environment Variables
+This project uses Firebase. You need to configure the environment variables for the application to connect to your Firebase project.
+
+1.  A `.env` file has been created for you in the root directory (based on `.env.example`).
+2.  Open `.env` and replace the placeholder values (e.g., `your_api_key`) with your actual Firebase configuration values.
+3.  You can find these values in your Firebase Console under Project Settings > General > Your apps > SDK setup and configuration.
+
+The configuration is loaded in `src/lib/firebase.ts`.
+
+### 2. Install Dependencies
+```bash
+npm install
+```
+
+### 3. Run Development Server
+```bash
+npm run dev
+```
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:
