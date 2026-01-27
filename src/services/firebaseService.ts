@@ -11,7 +11,11 @@ import {
   doc,
   getDoc,
   addDoc,
-  DocumentData
+  onSnapshot,
+  query,
+  where,
+  DocumentData,
+  QueryConstraint
 } from 'firebase/firestore';
 
 // Auth Service Abstraction
@@ -45,5 +49,20 @@ export const dbService = {
 
   addDocument: async (collectionName: string, data: DocumentData) => {
     return await addDoc(collection(db, collectionName), data);
+  },
+
+  subscribeToCollection: (
+    collectionName: string,
+    callback: (data: any[]) => void,
+    constraints: QueryConstraint[] = []
+  ) => {
+    const q = query(collection(db, collectionName), ...constraints);
+    return onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      callback(data);
+    });
   }
 };
