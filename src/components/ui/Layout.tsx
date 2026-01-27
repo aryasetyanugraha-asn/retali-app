@@ -5,12 +5,15 @@ import {
   Users,
   MessageSquare,
   PenTool,
-  User
+  User,
+  LogOut
 } from 'lucide-react';
 import { useRole, UserRole } from '../../context/RoleContext';
+import { useAuth } from '../../context/AuthContext';
 
 export const Layout: React.FC = () => {
   const { role, setRole } = useRole();
+  const { user, logout } = useAuth();
   const location = useLocation();
 
   const isActive = (path: string) => location.pathname === path;
@@ -48,15 +51,32 @@ export const Layout: React.FC = () => {
         </nav>
 
         <div className="absolute bottom-0 w-full p-4 border-t border-gray-100">
-          <div className="flex items-center p-2 rounded-lg bg-gray-50">
-            <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-              <User className="w-4 h-4 text-gray-500" />
-            </div>
-            <div className="ml-3">
-              <p className="text-sm font-medium text-gray-700">Admin User</p>
-              <p className="text-xs text-gray-500">{role}</p>
+          <div className="flex items-center p-2 rounded-lg bg-gray-50 mb-2">
+            {user?.photoURL ? (
+              <img
+                src={user.photoURL}
+                alt={user.displayName || 'User'}
+                className="w-8 h-8 rounded-full"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
+                <User className="w-4 h-4 text-gray-500" />
+              </div>
+            )}
+            <div className="ml-3 overflow-hidden">
+              <p className="text-sm font-medium text-gray-700 truncate">
+                {user?.displayName || 'User'}
+              </p>
+              <p className="text-xs text-gray-500 truncate">{user?.email}</p>
             </div>
           </div>
+          <button
+            onClick={() => logout()}
+            className="flex items-center w-full px-2 py-2 text-sm font-medium text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+          >
+            <LogOut className="w-4 h-4 mr-3" />
+            Sign Out
+          </button>
         </div>
       </aside>
 
