@@ -1,0 +1,70 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- Helper Functions ---
+
+    // Cek apakah user sudah login
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Mengambil data user dari database (jika Custom Claims belum diset)
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    // Cek Role
+    function isPusat() {
+      return isSignedIn() && (request.auth.token.role == 'PUSAT' || getUserData().role == 'PUSAT');
+    }
+
+    function isCabang() {
+      return isSignedIn() && (request.auth.token.role == 'CABANG' || getUserData().role == 'CABANG');
+    }
+
+    function isMitra() {
+      return isSignedIn() && (request.auth.token.role == 'MITRA' || getUserData().role == 'MITRA');
+    }
+
+    // --- Rules per Collection ---
+
+    // 1. Users Collection
+    match /users/{userId} {
+      // User bisa membaca profil sendiri, Pusat bisa baca semua
+      allow read: if isSignedIn() && (request.auth.uid == userId || isPusat());
+
+      // Hanya user ybs atau Pusat yang bisa edit
+      allow write: if isSignedIn() && (request.auth.uid == userId || isPusat());
+    }
+
+    // 2. Leads Collection
+    match /leads/{leadId} {
+      // PUSAT: Akses penuh
+      allow read, write: if isPusat();
+
+      // CABANG: Akses data milik cabangnya
+      // Asumsi: User Cabang punya field 'branchId' di profilnya
+      allow read, write: if isCabang() && resource.data.branchId == getUserData().branchId;
+
+      // Untuk Create (karena resource belum ada), cek request data
+      allow create: if isCabang() && request.resource.data.branchId == getUserData().branchId;
+
+      // MITRA: Akses data yang ditugaskan padanya
+      allow read, write: if isMitra() && resource.data.assignedTo == request.auth.uid;
+      allow create: if isMitra() && request.resource.data.assignedTo == request.auth.uid;
+    }
+
+    // 3. Content Requests (AI Jobs)
+    match /content_requests/{jobId} {
+      // Hanya pemilik job yang bisa akses
+      allow read, write: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+    }
+
+    // 4. Default Block
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
