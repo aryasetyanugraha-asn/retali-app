@@ -12,6 +12,8 @@ import {
   doc,
   getDoc,
   addDoc,
+  setDoc,
+  deleteDoc,
   onSnapshot,
   query,
   DocumentData,
@@ -63,6 +65,30 @@ export const dbService = {
         ...doc.data()
       }));
       callback(data);
+    });
+  }
+};
+
+export const integrationService = {
+  saveUserIntegration: async (userId: string, tokenData: any) => {
+    // path: users/{userId}/integrations/instagram
+    await setDoc(doc(db, 'users', userId, 'integrations', 'instagram'), {
+      ...tokenData,
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+  },
+
+  deleteUserIntegration: async (userId: string) => {
+    await deleteDoc(doc(db, 'users', userId, 'integrations', 'instagram'));
+  },
+
+  subscribeToIntegration: (userId: string, callback: (data: any) => void) => {
+    return onSnapshot(doc(db, 'users', userId, 'integrations', 'instagram'), (docSnap) => {
+      if (docSnap.exists()) {
+        callback({ id: docSnap.id, ...docSnap.data() });
+      } else {
+        callback(null);
+      }
     });
   }
 };

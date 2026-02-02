@@ -5,6 +5,7 @@ import {
   Users,
   MessageSquare,
   PenTool,
+  Settings,
   User,
   LogOut
 } from 'lucide-react';
@@ -50,6 +51,7 @@ export const Layout: React.FC = () => {
           <NavItem to="/leads" icon={Users} label="Leads CRM" />
           <NavItem to="/inbox" icon={MessageSquare} label="Unified Inbox" />
           <NavItem to="/content" icon={PenTool} label="Content AI" />
+          <NavItem to="/settings" icon={Settings} label="Settings" />
         </nav>
 
         <div className="absolute bottom-0 w-full p-4 border-t border-gray-100">
@@ -91,6 +93,7 @@ export const Layout: React.FC = () => {
             {location.pathname === '/leads' && 'Leads Management'}
             {location.pathname === '/inbox' && 'Unified Inbox'}
             {location.pathname === '/content' && 'Content Generator'}
+            {location.pathname === '/settings' && 'Settings & Integrations'}
           </h2>
 
           <div className="flex items-center space-x-4">
