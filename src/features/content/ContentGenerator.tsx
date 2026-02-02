@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { functionsService } from '../../services/firebaseService';
+import { functionsService, dbService } from '../../services/firebaseService';
+import { useAuth } from '../../context/AuthContext';
 import {
   Sparkles,
   Calendar,
@@ -23,6 +24,7 @@ const MOCK_SCHEDULED_POSTS = [
 ];
 
 export const ContentGenerator: React.FC = () => {
+  const { user } = useAuth();
   const [topic, setTopic] = useState<Topic>('PROMO');
   const [platform, setPlatform] = useState<Platform>('INSTAGRAM');
   const [includeImage, setIncludeImage] = useState(false);
@@ -49,6 +51,33 @@ export const ContentGenerator: React.FC = () => {
       console.error('Error generating content:', error);
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleSchedule = async () => {
+    if (!generatedContent || !user) return;
+
+    try {
+      const payload = {
+        userId: user.uid,
+        topic,
+        platform,
+        content: generatedContent,
+        imageUrl: generatedImage,
+        status: 'SCHEDULED',
+        scheduledAt: new Date(),
+        createdAt: new Date()
+      };
+
+      await dbService.addDocument('posts', payload);
+      alert('Post scheduled successfully!');
+
+      // Reset form
+      setGeneratedContent('');
+      setGeneratedImage(null);
+    } catch (error) {
+      console.error('Error scheduling post:', error);
+      alert('Failed to schedule post. Please try again.');
     }
   };
 
@@ -155,7 +184,10 @@ export const ContentGenerator: React.FC = () => {
                     <Copy className="w-3.5 h-3.5 mr-1.5" />
                     Copy
                   </button>
-                  <button className="flex items-center px-3 py-1.5 text-xs font-medium text-blue-600 hover:bg-blue-50 rounded-md transition-colors">
+                  <button
+                    onClick={handleSchedule}
+                    className="flex items-center px-3 py-1.5 text-xs font-medium text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                  >
                     <Calendar className="w-3.5 h-3.5 mr-1.5" />
                     Schedule Post
                   </button>
