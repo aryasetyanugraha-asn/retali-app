@@ -68,7 +68,7 @@ export const dbService = {
 };
 
 // Functions Service Abstraction
-const functions = getFunctions(app);
+const functions = getFunctions(app, "asia-southeast2");
 
 export const functionsService = {
   generateContent: async (topic: string, platform: string) => {
