@@ -1,4 +1,4 @@
-import * as functions from "firebase-functions";
+import * as functions from "firebase-functions/v1";
 import * as admin from "firebase-admin";
 
 admin.initializeApp();
@@ -15,10 +15,10 @@ import { onCreateUser } from "./triggers/authTriggers";
 
 // Export Functions
 
-// AI Service
+// AI Service (v2)
 export const generateContent = generateAIContent;
 
-// Social Media Service
+// Social Media Service (v1)
 export const postToSocial = functions.https.onCall(postToSocialService);
 
 // Webhooks

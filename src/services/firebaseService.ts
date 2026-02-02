@@ -71,9 +71,9 @@ export const dbService = {
 const functions = getFunctions(app, "asia-southeast2");
 
 export const functionsService = {
-  generateContent: async (topic: string, platform: string) => {
+  generateContent: async (topic: string, platform: string, includeImage: boolean = false) => {
     const generateContentFn = httpsCallable(functions, 'generateContent');
-    const result = await generateContentFn({ topic, platform });
+    const result = await generateContentFn({ topic, platform, includeImage });
     return result.data;
   }
 };
