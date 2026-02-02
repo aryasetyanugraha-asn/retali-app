@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { functionsService } from '../../services/firebaseService';
 import {
   Sparkles,
   Calendar,
@@ -26,32 +27,22 @@ export const ContentGenerator: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedContent, setGeneratedContent] = useState('');
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     setIsGenerating(true);
     setGeneratedContent('');
 
-    // Simulate AI Delay
-    setTimeout(() => {
-      let content = '';
-      const hashtags = '#Umrah #Haji #TravelSyariah #Makkah #Madinah';
-
-      switch (topic) {
-        case 'PROMO':
-          content = `✨ PROMO SPESIAL UMRAH RAMADHAN ✨\n\nRindu Baitullah? Wujudkan impian ibadah di bulan suci bersama kami. Nikmati fasilitas hotel bintang 5 dekat masjid.\n\n✅ Penerbangan Direct\n✅ Hotel *5 (0 meter)\n✅ Pembimbing Bersertifikat\n\n📢 Diskon Early Bird s/d 2 Juta! Slot terbatas.\n\nHubungi kami sekarang untuk info lebih lanjut! 🕋`;
-          break;
-        case 'MANASIK':
-          content = `🕋 TAHUKAH ANDA?\n\nSalah satu rukun Umrah adalah Thawaf, mengelilingi Ka'bah sebanyak 7 kali. Dimulai dari Hajar Aswad dan berakhir di Hajar Aswad pula.\n\nPastikan niat lurus dan hati bersih saat melaksanakannya. Semoga Allah mudahkan langkah kita menuju Baitullah. Aamiin. 🤲`;
-          break;
-        case 'DOA':
-          content = `🤲 DOA KETIKA MELIHAT KA'BAH\n\nاللَّهُمَّ زِدْ هَذَا الْبَيْتَ تَشْرِيفًا وَتَعْظِيمًا وَتَكْرِيمًا وَمَهَابَةً\n\n"Ya Allah, tambahkanlah kemuliaan, keagungan, kehormatan, dan wibawa pada Baitullah ini."\n\nSimpan doa ini untuk persiapan umrah nanti ya! Jangan lupa share ke keluarga. ❤️`;
-          break;
-        default:
-          content = `Tips persiapan Umrah bagi pemula: Jaga kesehatan fisik dan mental. Perbanyak jalan kaki setiap pagi agar terbiasa saat di Tanah Suci nanti! 💪`;
+    try {
+      const result: any = await functionsService.generateContent(topic, platform);
+      if (result.success && result.data) {
+        setGeneratedContent(result.data);
+      } else {
+        console.error('AI Generation failed:', result);
       }
-
-      setGeneratedContent(`${content}\n\n${hashtags}`);
+    } catch (error) {
+      console.error('Error generating content:', error);
+    } finally {
       setIsGenerating(false);
-    }, 1500);
+    }
   };
 
   return (

@@ -1,4 +1,5 @@
-import { auth, db } from '../lib/firebase';
+import { auth, db, app } from '../lib/firebase';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -63,5 +64,16 @@ export const dbService = {
       }));
       callback(data);
     });
+  }
+};
+
+// Functions Service Abstraction
+const functions = getFunctions(app);
+
+export const functionsService = {
+  generateContent: async (topic: string, platform: string) => {
+    const generateContentFn = httpsCallable(functions, 'generateContent');
+    const result = await generateContentFn({ topic, platform });
+    return result.data;
   }
 };
