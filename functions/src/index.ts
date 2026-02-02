@@ -4,7 +4,7 @@ import * as admin from "firebase-admin";
 admin.initializeApp();
 
 // Import Services
-import { generateContent } from "./services/aiService";
+import { generateAIContent } from "./services/aiService";
 import { postToSocial as postToSocialService } from "./services/socialService";
 
 // Import Controllers
@@ -16,7 +16,7 @@ import { onCreateUser } from "./triggers/authTriggers";
 // Export Functions
 
 // AI Service
-export const generateAIContent = functions.https.onCall(generateContent);
+export const generateContent = generateAIContent;
 
 // Social Media Service
 export const postToSocial = functions.https.onCall(postToSocialService);
