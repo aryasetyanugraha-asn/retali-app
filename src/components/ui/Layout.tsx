@@ -37,10 +37,12 @@ export const Layout: React.FC = () => {
       {/* Sidebar */}
       <aside className="w-64 bg-white border-r border-gray-200 flex-shrink-0 fixed h-full z-10">
         <div className="p-6 flex items-center space-x-2 border-b border-gray-100">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-xl">L</span>
-          </div>
-          <h1 className="text-xl font-bold text-gray-800">LeadGen Pro</h1>
+          <img
+            src="https://retali.id/wp-content/uploads/2024/09/Logo-HO-color-1.png"
+            alt="Mitra Retali"
+            className="w-8 h-8 object-contain"
+          />
+          <h1 className="text-xl font-bold text-gray-800">Mitra Retali</h1>
         </div>
 
         <nav className="mt-6 space-y-1">
