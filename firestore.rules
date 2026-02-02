@@ -62,7 +62,13 @@ service cloud.firestore {
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
     }
 
-    // 4. Default Block
+    // 4. Posts (Scheduled Content)
+    match /posts/{postId} {
+      allow read, write: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+    }
+
+    // 5. Default Block
     match /{document=**} {
       allow read, write: if false;
     }
