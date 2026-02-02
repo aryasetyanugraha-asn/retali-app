@@ -9,7 +9,8 @@ import {
   Instagram,
   Facebook,
   Video,
-  Loader2
+  Loader2,
+  Image as ImageIcon
 } from 'lucide-react';
 
 type Topic = 'PROMO' | 'MANASIK' | 'DOA' | 'TIPS';
@@ -24,17 +25,23 @@ const MOCK_SCHEDULED_POSTS = [
 export const ContentGenerator: React.FC = () => {
   const [topic, setTopic] = useState<Topic>('PROMO');
   const [platform, setPlatform] = useState<Platform>('INSTAGRAM');
+  const [includeImage, setIncludeImage] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedContent, setGeneratedContent] = useState('');
+  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
 
   const handleGenerate = async () => {
     setIsGenerating(true);
     setGeneratedContent('');
+    setGeneratedImage(null);
 
     try {
-      const result: any = await functionsService.generateContent(topic, platform);
+      const result: any = await functionsService.generateContent(topic, platform, includeImage);
       if (result.success && result.data) {
         setGeneratedContent(result.data);
+        if (result.image) {
+          setGeneratedImage(result.image);
+        }
       } else {
         console.error('AI Generation failed:', result);
       }
@@ -83,6 +90,19 @@ export const ContentGenerator: React.FC = () => {
                 <option value="TIKTOK">TikTok Caption</option>
               </select>
             </div>
+
+            <div className="flex items-center space-x-2 pt-8 sm:col-span-2">
+              <input
+                type="checkbox"
+                id="includeImage"
+                checked={includeImage}
+                onChange={(e) => setIncludeImage(e.target.checked)}
+                className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+              />
+              <label htmlFor="includeImage" className="text-sm font-medium text-gray-700 cursor-pointer">
+                Generate Poster with Logo
+              </label>
+            </div>
           </div>
 
           <button
@@ -104,15 +124,32 @@ export const ContentGenerator: React.FC = () => {
           </button>
 
           {/* Generated Result */}
-          {generatedContent && (
+          {(generatedContent || generatedImage) && (
             <div className="mt-6 animate-fade-in">
               <label className="block text-sm font-medium text-gray-700 mb-2">Generated Result</label>
               <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <textarea
-                  readOnly
-                  className="w-full bg-transparent border-none focus:ring-0 text-gray-800 text-sm h-48 resize-none"
-                  value={generatedContent}
-                />
+                {generatedContent && (
+                  <textarea
+                    readOnly
+                    className="w-full bg-transparent border-none focus:ring-0 text-gray-800 text-sm h-48 resize-none mb-4"
+                    value={generatedContent}
+                  />
+                )}
+
+                {generatedImage && (
+                  <div className="mb-4">
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                      <ImageIcon className="w-3 h-3 inline mr-1" />
+                      Generated Poster
+                    </label>
+                    <img
+                      src={generatedImage}
+                      alt="Generated Poster"
+                      className="w-full rounded-lg shadow-sm max-w-sm border border-gray-200"
+                    />
+                  </div>
+                )}
+
                 <div className="flex items-center justify-end gap-2 mt-2 pt-3 border-t border-gray-200">
                   <button className="flex items-center px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-200 rounded-md transition-colors">
                     <Copy className="w-3.5 h-3.5 mr-1.5" />
