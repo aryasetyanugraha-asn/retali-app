@@ -6,7 +6,7 @@ import * as logger from "firebase-functions/logger";
 // Note: Ensure GEMINI_API_KEY is set in Firebase secrets or environment variables
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
-export const generateAIContent = onCall({ cors: true }, async (request) => {
+export const generateAIContent = onCall({ cors: true, region: "asia-southeast2" }, async (request) => {
   // 1. Validate Authentication
   if (!request.auth) {
     throw new HttpsError(
