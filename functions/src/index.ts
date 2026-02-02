@@ -5,24 +5,30 @@ admin.initializeApp();
 
 // Import Services
 import { generateContent } from "./services/aiService";
-// import { postToSocial } from "./services/socialService";
+import { postToSocial as postToSocialService } from "./services/socialService";
+
+// Import Controllers
+import { webhookHandler } from "./controllers/webhookController";
+
+// Import Triggers
+import { onCreateUser } from "./triggers/authTriggers";
 
 // Export Functions
+
+// AI Service
 export const generateAIContent = functions.https.onCall(generateContent);
+
+// Social Media Service
+export const postToSocial = functions.https.onCall(postToSocialService);
+
+// Webhooks
+export const metaWebhook = webhookHandler;
+
+// Auth Triggers
+export const onUserCreated = onCreateUser;
 
 // Example HTTP Trigger
 export const helloWorld = functions.https.onRequest((request, response) => {
   functions.logger.info("Hello logs!", {structuredData: true});
   response.send("Hello from Firebase Backend!");
-});
-
-// Triggers
-export const onUserCreated = functions.auth.user().onCreate((user) => {
-    // Logic to set default custom claims or create user profile in Firestore
-    const db = admin.firestore();
-    return db.collection("users").doc(user.uid).set({
-        email: user.email,
-        role: "MITRA", // Default role
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    }, { merge: true });
 });
