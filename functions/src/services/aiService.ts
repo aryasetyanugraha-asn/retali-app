@@ -29,8 +29,11 @@ async function applyBranding(imageUrl: string): Promise<string> {
     const logoTargetWidth = 250;
 
     // Resize background to 1080x1350 (Instagram Portrait)
+    // Force 'cover' to ensure image fills the canvas and removes borders
     const background = sharp(bgBuffer)
-      .resize(width, height, {
+      .resize({
+        width: width,
+        height: height,
         fit: 'cover',
         position: 'center'
       });
@@ -119,8 +122,8 @@ export const generateAIContent = onCall({
     if (includeImage) {
       try {
         // Fetch a random Unsplash image related to "Umrah/Mecca"
-        // Using loremflickr as a reliable placeholder since source.unsplash.com is deprecated
-        const randomImageUrl = "https://loremflickr.com/1080/1350/mecca,umrah,mosque";
+        // Using loremflickr as a reliable placeholder since source.unsplash.com is deprecated, but adding randomization as requested
+        const randomImageUrl = `https://loremflickr.com/1080/1350/mecca,umrah,mosque?random=${Math.random()}`;
         imageBase64 = await applyBranding(randomImageUrl);
       } catch (imgError) {
         logger.error("Failed to generate branded image:", imgError);
