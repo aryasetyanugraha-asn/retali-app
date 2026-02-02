@@ -13,7 +13,6 @@ import {
   addDoc,
   onSnapshot,
   query,
-  where,
   DocumentData,
   QueryConstraint
 } from 'firebase/firestore';
