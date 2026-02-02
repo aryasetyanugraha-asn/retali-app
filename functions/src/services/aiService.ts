@@ -92,7 +92,7 @@ export const generateAIContent = onCall({
 
   try {
     // 3. Construct the Prompt specifically for Umrah Context
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     const prompt = `
       Act as an expert Social Media Specialist for an Umrah & Hajj Travel Agency in Indonesia.
