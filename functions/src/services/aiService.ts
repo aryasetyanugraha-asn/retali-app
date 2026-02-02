@@ -1,52 +1,64 @@
-import * as functions from "firebase-functions";
-// import OpenAI from "openai";
+import { onCall, HttpsError } from "firebase-functions/v2/https";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import * as logger from "firebase-functions/logger";
 
-// Initialize OpenAI client (make sure to set config: firebase functions:config:set openai.key="...")
-// const openai = new OpenAI({ apiKey: functions.config().openai.key });
+// Initialize Gemini
+// Note: Ensure GEMINI_API_KEY is set in Firebase secrets or environment variables
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
-interface ContentRequest {
-    topic: string;
-    platform: 'INSTAGRAM' | 'FACEBOOK' | 'WHATSAPP';
-}
+export const generateAIContent = onCall({ cors: true }, async (request) => {
+  // 1. Validate Authentication
+  if (!request.auth) {
+    throw new HttpsError(
+      "unauthenticated",
+      "User must be logged in to generate content."
+    );
+  }
 
-export const generateContent = async (data: ContentRequest, context: functions.https.CallableContext) => {
-    // 1. Authentication Check
-    if (!context.auth) {
-        throw new functions.https.HttpsError(
-            'unauthenticated',
-            'The function must be called while authenticated.'
-        );
-    }
+  // 2. Extract Data from Request
+  const { topic, platform, tone = "professional" } = request.data;
 
-    const { topic, platform } = data;
+  if (!topic || !platform) {
+    throw new HttpsError(
+      "invalid-argument",
+      "Topic and Platform are required."
+    );
+  }
 
-    // 2. Validate Input
-    if (!topic || !platform) {
-        throw new functions.https.HttpsError(
-            'invalid-argument',
-            'The function must be called with one arguments "topic" and "platform".'
-        );
-    }
+  try {
+    // 3. Construct the Prompt specifically for Umrah Context
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
-    try {
-        // 3. Call AI API (Simulation for now)
-        // const completion = await openai.chat.completions.create({...});
+    const prompt = `
+      Act as an expert Social Media Specialist for an Umrah & Hajj Travel Agency in Indonesia.
 
-        // Mock Response
-        const mockResponse = `[SIMULATED AI] Caption for ${platform} about ${topic}. #Travel #Umrah`;
+      Create a post for: ${platform}
+      Topic: ${topic}
+      Tone: ${tone}
 
-        return {
-            success: true,
-            content: mockResponse,
-            generatedAt: new Date().toISOString()
-        };
+      Requirements:
+      - Language: Bahasa Indonesia (Persuasive and Islamic).
+      - Include 5-10 relevant hashtags (e.g., #Umrah, #Haji, #TravelSunnah).
+      - For Instagram/Facebook: Structure it with a catchy Hook, Value Proposition, and Call to Action (CTA).
+      - For TikTok: Create a short script or caption.
+      - Do NOT include markdown formatting like **bold** or *italic*, just plain text with emojis.
+    `;
 
-    } catch (error) {
-        console.error("AI Generation Error", error);
-        throw new functions.https.HttpsError(
-            'internal',
-            'Unable to generate content',
-            error
-        );
-    }
-};
+    // 4. Call AI
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+
+    logger.info(`Content generated for user ${request.auth.uid}`, { topic, platform });
+
+    return {
+      success: true,
+      data: text,
+      timestamp: new Date().toISOString()
+    };
+
+  } catch (error) {
+    logger.error("Error generating content:", error);
+    throw new HttpsError("internal", "Failed to generate content via AI.");
+  }
+});
