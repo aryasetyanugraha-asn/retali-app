@@ -104,7 +104,7 @@ export const Layout: React.FC = () => {
             <h2 className="text-lg font-semibold text-gray-800 line-clamp-1">
               {location.pathname === '/dashboard' && 'Dashboard Overview'}
               {location.pathname === '/leads' && 'Leads Management'}
-              {location.pathname === '/inbox' && 'Unified Inbox'}
+              {location.pathname === '/inbox' && 'Pesan Masuk'}
               {location.pathname === '/content' && 'Content Generator'}
               {location.pathname === '/schedule' && 'Jadwal Posting'}
               {location.pathname === '/settings' && 'Settings & Integrations'}

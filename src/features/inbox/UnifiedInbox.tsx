@@ -114,16 +114,17 @@ export const UnifiedInbox: React.FC = () => {
   };
 
   return (
-    <div className="h-[calc(100vh-8rem)] bg-white rounded-xl shadow-sm border border-gray-200 flex overflow-hidden">
+    <div className="h-[calc(100vh-8rem)] bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col md:flex-row overflow-hidden">
       {/* Sidebar: Conversation List */}
-      <div className="w-80 border-r border-gray-200 flex flex-col">
+      <div className="w-full md:w-80 h-[35vh] md:h-auto border-b md:border-b-0 md:border-r border-gray-200 flex flex-col shrink-0">
         <div className="p-4 border-b border-gray-100">
+          <h2 className="text-lg font-bold text-gray-900 mb-3 md:hidden">Pesan Masuk</h2>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
               type="text"
               placeholder="Search chats..."
-              className="w-full pl-10 pr-4 py-2 bg-gray-50 border-none rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+              className="w-full pl-10 pr-4 py-2 bg-gray-50 border-none rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-100"
             />
           </div>
         </div>
@@ -132,7 +133,7 @@ export const UnifiedInbox: React.FC = () => {
             <div
               key={conv.id}
               onClick={() => setSelectedId(conv.id)}
-              className={`p-4 border-b border-gray-50 cursor-pointer hover:bg-gray-50 transition-colors ${selectedId === conv.id ? 'bg-blue-50/50' : ''}`}
+              className={`p-4 border-b border-gray-50 cursor-pointer hover:bg-gray-50 transition-colors ${selectedId === conv.id ? 'bg-emerald-50' : ''}`}
             >
               <div className="flex justify-between items-start mb-1">
                 <h4 className="font-semibold text-gray-900 text-sm">{conv.name}</h4>
@@ -145,7 +146,7 @@ export const UnifiedInbox: React.FC = () => {
                   <span className="capitalize text-[10px]">{conv.platform.toLowerCase()}</span>
                 </div>
                 {conv.unread > 0 && (
-                  <span className="w-5 h-5 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                  <span className="w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
                     {conv.unread}
                   </span>
                 )}
@@ -160,16 +161,16 @@ export const UnifiedInbox: React.FC = () => {
         {selectedConversation ? (
           <>
             {/* Chat Header */}
-            <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-white">
+            <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-white sticky top-0 z-10">
               <div className="flex items-center">
-                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold mr-3">
+                <div className="w-10 h-10 rounded-full bg-violet-100 flex items-center justify-center text-violet-600 font-bold mr-3">
                   {selectedConversation.name.charAt(0)}
                 </div>
                 <div>
                   <h3 className="font-bold text-gray-900">{selectedConversation.name}</h3>
                   <div className="flex items-center text-xs text-gray-500">
-                    <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                    Online via {selectedConversation.platform}
+                    <span className="w-2 h-2 bg-emerald-500 rounded-full mr-2"></span>
+                    Online
                   </div>
                 </div>
               </div>
@@ -179,16 +180,16 @@ export const UnifiedInbox: React.FC = () => {
             </div>
 
             {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50/50">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50/30">
               {activeMessages.map((msg) => (
                 <div key={msg.id} className={`flex ${msg.sender === 'me' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[70%] rounded-2xl px-4 py-3 text-sm ${
+                  <div className={`max-w-[75%] rounded-2xl px-4 py-3 text-sm ${
                     msg.sender === 'me'
-                      ? 'bg-blue-600 text-white rounded-br-none'
+                      ? 'bg-emerald-100 text-emerald-900 rounded-br-none'
                       : 'bg-white border border-gray-200 text-gray-800 rounded-bl-none shadow-sm'
                   }`}>
                     <p>{msg.text}</p>
-                    <p className={`text-[10px] mt-1 text-right ${msg.sender === 'me' ? 'text-blue-100' : 'text-gray-400'}`}>
+                    <p className={`text-[10px] mt-1 text-right ${msg.sender === 'me' ? 'text-emerald-700' : 'text-gray-400'}`}>
                       {msg.timestamp}
                     </p>
                   </div>
@@ -212,7 +213,7 @@ export const UnifiedInbox: React.FC = () => {
               </div>
 
               <div className="flex items-center gap-2">
-                <button className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100">
+                <button className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 hidden md:block">
                   <Paperclip className="w-5 h-5" />
                 </button>
                 <div className="flex-1 relative">
@@ -221,16 +222,16 @@ export const UnifiedInbox: React.FC = () => {
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                    placeholder="Type a message..."
-                    className="w-full pl-4 pr-10 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Tulis pesan..."
+                    className="w-full pl-4 pr-10 py-3 border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                   />
-                  <button className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                  <button className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 hidden md:block">
                     <Smile className="w-5 h-5" />
                   </button>
                 </div>
                 <button
                   onClick={handleSend}
-                  className="p-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-sm"
+                  className="p-3 bg-emerald-500 text-white rounded-full hover:bg-emerald-600 transition-colors shadow-sm"
                 >
                   <Send className="w-5 h-5" />
                 </button>
