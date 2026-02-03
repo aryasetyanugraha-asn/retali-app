@@ -6,7 +6,8 @@ import {
   Target,
   ArrowUpRight,
   ArrowDownRight,
-  Activity
+  Activity,
+  Info
 } from 'lucide-react';
 import {
   XAxis,
@@ -113,10 +114,40 @@ export const Dashboard: React.FC = () => {
 
       {loading ? (
         <div className="h-64 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
         </div>
       ) : (
         <>
+          {/* Welcome Message for MITRA */}
+          {role === 'MITRA' && (
+            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-6 shadow-sm">
+              <div className="flex items-start space-x-4">
+                <div className="p-2 bg-emerald-100 rounded-lg shrink-0">
+                  <Info className="w-6 h-6 text-emerald-600" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-emerald-900 mb-2">
+                    Selamat Datang di Mitra Retali
+                  </h2>
+                  <div className="space-y-3 text-emerald-800">
+                    <p>
+                      Terima kasih telah bergabung bersama kami. Langkah pertama Anda adalah melengkapi profil dan menghubungkan akun media sosial Anda.
+                    </p>
+                    <div className="bg-white/60 rounded-lg p-4 border border-emerald-100">
+                      <p className="font-medium mb-1">Status Sistem:</p>
+                      <p className="text-sm mb-3">
+                        Saat ini sedang tahap koneksi ke jaringan media sosial.
+                      </p>
+                      <p className="text-sm font-medium">
+                        "Mohon menunggu fitur kami yang akan datang jika ada pertanyaan dapat menghubungi kontak berikut : <span className="font-bold select-all">+62 812-9242-554 (Pak Budi - Kacab Jaksel Retali)</span>"
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <StatCard
