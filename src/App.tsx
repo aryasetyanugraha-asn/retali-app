@@ -4,6 +4,7 @@ import { Dashboard } from './features/dashboard/Dashboard';
 import { LeadsList } from './features/leads/LeadsList';
 import { UnifiedInbox } from './features/inbox/UnifiedInbox';
 import { ContentGenerator } from './features/content/ContentGenerator';
+import { SchedulePage } from './features/schedule/SchedulePage';
 import { InstagramConnect } from './features/settings/InstagramConnect';
 import { RoleProvider } from './context/RoleContext';
 import { AuthProvider } from './context/AuthContext';
@@ -30,6 +31,7 @@ function App() {
               <Route path="leads" element={<LeadsList />} />
               <Route path="inbox" element={<UnifiedInbox />} />
               <Route path="content" element={<ContentGenerator />} />
+              <Route path="schedule" element={<SchedulePage />} />
               <Route path="settings" element={<InstagramConnect />} />
             </Route>
           </Routes>
