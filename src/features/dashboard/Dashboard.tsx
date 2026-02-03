@@ -139,7 +139,7 @@ export const Dashboard: React.FC = () => {
                         Saat ini sedang tahap koneksi ke jaringan media sosial.
                       </p>
                       <p className="text-sm font-medium">
-                        "Mohon menunggu fitur kami yang akan datang jika ada pertanyaan dapat menghubungi kontak berikut : <span className="font-bold select-all">+62 812-9242-554 (Pak Budi - Kacab Jaksel Retali)</span>"
+                        "Mohon menunggu fitur kami yang akan datang jika ada pertanyaan dapat menghubungi kontak berikut : <span className="font-bold select-all">08131914048 (Pak Budi - Kacab Jaksel Retali)</span>"
                       </p>
                     </div>
                   </div>
