@@ -207,8 +207,8 @@ export const UnifiedInbox: React.FC = () => {
             {/* Messages Area */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50/30">
               {activeMessages.map((msg) => (
-                <div key={msg.id} className={`flex ${msg.sender === 'me' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[85%] sm:max-w-[75%] break-words rounded-2xl px-4 py-3 text-sm ${
+                <div key={msg.id} className={`flex ${msg.sender === 'me' ? 'justify-end pl-10' : 'justify-start pr-10'}`}>
+                  <div className={`max-w-full sm:max-w-[75%] break-words rounded-2xl px-4 py-3 text-sm ${
                     msg.sender === 'me'
                       ? 'bg-emerald-100 text-emerald-900 rounded-br-none'
                       : 'bg-white border border-gray-200 text-gray-800 rounded-bl-none shadow-sm'
