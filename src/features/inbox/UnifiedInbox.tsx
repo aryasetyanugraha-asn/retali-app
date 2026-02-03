@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Search,
   Send,
@@ -7,7 +7,8 @@ import {
   MoreVertical,
   MessageCircle,
   Facebook,
-  Instagram
+  Instagram,
+  ArrowLeft
 } from 'lucide-react';
 
 interface Message {
@@ -73,18 +74,35 @@ const QUICK_REPLIES = [
 ];
 
 export const UnifiedInbox: React.FC = () => {
-  const [selectedId, setSelectedId] = useState<string>(MOCK_CONVERSATIONS[0].id);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [inputText, setInputText] = useState('');
+
+  // Automatically select first conversation on desktop
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 768 && !selectedId && MOCK_CONVERSATIONS.length > 0) {
+        setSelectedId(MOCK_CONVERSATIONS[0].id);
+      }
+    };
+
+    // Initial check
+    handleResize();
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [selectedId]);
 
   // In a real app, this would update the state, but here we just mock the UI update
   // We'll create a local state for the messages of the *selected* conversation to show interactivity
   const selectedConversation = MOCK_CONVERSATIONS.find(c => c.id === selectedId);
-  const [activeMessages, setActiveMessages] = useState<Message[]>(selectedConversation?.messages || []);
+  const [activeMessages, setActiveMessages] = useState<Message[]>([]);
 
   // Update active messages when selection changes
-  React.useEffect(() => {
+  useEffect(() => {
     if (selectedConversation) {
       setActiveMessages(selectedConversation.messages);
+    } else {
+      setActiveMessages([]);
     }
   }, [selectedId, selectedConversation]);
 
@@ -116,7 +134,7 @@ export const UnifiedInbox: React.FC = () => {
   return (
     <div className="h-[calc(100vh-8rem)] bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col md:flex-row overflow-hidden">
       {/* Sidebar: Conversation List */}
-      <div className="w-full md:w-80 h-[35vh] md:h-auto border-b md:border-b-0 md:border-r border-gray-200 flex flex-col shrink-0">
+      <div className={`w-full md:w-80 h-full border-r border-gray-200 flex flex-col shrink-0 ${selectedId ? 'hidden md:flex' : 'flex'}`}>
         <div className="p-4 border-b border-gray-100">
           <h2 className="text-lg font-bold text-gray-900 mb-3 md:hidden">Pesan Masuk</h2>
           <div className="relative">
@@ -157,12 +175,19 @@ export const UnifiedInbox: React.FC = () => {
       </div>
 
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col">
+      <div className={`flex-1 flex flex-col h-full ${selectedId ? 'flex' : 'hidden md:flex'}`}>
         {selectedConversation ? (
           <>
             {/* Chat Header */}
             <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-white sticky top-0 z-10">
               <div className="flex items-center">
+                <button
+                  onClick={() => setSelectedId(null)}
+                  className="mr-3 p-1 rounded-full hover:bg-gray-100 md:hidden"
+                  aria-label="Back to list"
+                >
+                  <ArrowLeft className="w-6 h-6 text-gray-600" />
+                </button>
                 <div className="w-10 h-10 rounded-full bg-violet-100 flex items-center justify-center text-violet-600 font-bold mr-3">
                   {selectedConversation.name.charAt(0)}
                 </div>
@@ -183,7 +208,7 @@ export const UnifiedInbox: React.FC = () => {
             <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50/30">
               {activeMessages.map((msg) => (
                 <div key={msg.id} className={`flex ${msg.sender === 'me' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[75%] rounded-2xl px-4 py-3 text-sm ${
+                  <div className={`max-w-[85%] sm:max-w-[75%] break-words rounded-2xl px-4 py-3 text-sm ${
                     msg.sender === 'me'
                       ? 'bg-emerald-100 text-emerald-900 rounded-br-none'
                       : 'bg-white border border-gray-200 text-gray-800 rounded-bl-none shadow-sm'
@@ -239,8 +264,9 @@ export const UnifiedInbox: React.FC = () => {
             </div>
           </>
         ) : (
-          <div className="flex-1 flex items-center justify-center text-gray-400">
-            Select a conversation to start chatting
+          <div className="flex-1 flex items-center justify-center text-gray-400 flex-col">
+            <MessageCircle className="w-16 h-16 text-gray-200 mb-4" />
+            <p>Select a conversation to start chatting</p>
           </div>
         )}
       </div>
