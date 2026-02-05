@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useUserProfile } from '../../hooks/useUserProfile';
 import { dbService } from '../../services/firebaseService';
-import { InstagramConnect } from './InstagramConnect';
+import { SocialConnect } from './SocialConnect';
 import { User, Phone, CreditCard, Save, Globe } from 'lucide-react';
 
 export const SettingsPage: React.FC = () => {
@@ -202,7 +202,7 @@ export const SettingsPage: React.FC = () => {
 
         {/* Right Column: Integrations */}
         <div className="space-y-6">
-            <InstagramConnect />
+            <SocialConnect />
         </div>
       </div>
     </div>
