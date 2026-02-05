@@ -74,20 +74,20 @@ export const dbService = {
 };
 
 export const integrationService = {
-  saveUserIntegration: async (userId: string, tokenData: any) => {
-    // path: users/{userId}/integrations/instagram
-    await setDoc(doc(db, 'users', userId, 'integrations', 'instagram'), {
+  saveUserIntegration: async (userId: string, tokenData: any, platform: string = 'instagram') => {
+    // path: users/{userId}/integrations/{platform}
+    await setDoc(doc(db, 'users', userId, 'integrations', platform), {
       ...tokenData,
       updatedAt: new Date().toISOString()
     }, { merge: true });
   },
 
-  deleteUserIntegration: async (userId: string) => {
-    await deleteDoc(doc(db, 'users', userId, 'integrations', 'instagram'));
+  deleteUserIntegration: async (userId: string, platform: string = 'instagram') => {
+    await deleteDoc(doc(db, 'users', userId, 'integrations', platform));
   },
 
-  subscribeToIntegration: (userId: string, callback: (data: any) => void) => {
-    return onSnapshot(doc(db, 'users', userId, 'integrations', 'instagram'), (docSnap) => {
+  subscribeToIntegration: (userId: string, callback: (data: any) => void, platform: string = 'instagram') => {
+    return onSnapshot(doc(db, 'users', userId, 'integrations', platform), (docSnap) => {
       if (docSnap.exists()) {
         callback({ id: docSnap.id, ...docSnap.data() });
       } else {
