@@ -53,6 +53,10 @@ export const dbService = {
     return await addDoc(collection(db, collectionName), data);
   },
 
+  updateDocument: async (collectionName: string, id: string, data: any) => {
+    return await setDoc(doc(db, collectionName, id), data, { merge: true });
+  },
+
   subscribeToCollection: (
     collectionName: string,
     callback: (data: any[]) => void,

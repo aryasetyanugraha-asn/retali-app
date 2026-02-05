@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRole, UserRole } from '../../context/RoleContext';
+import { useUserProfile } from '../../hooks/useUserProfile'; // Import hook
+import { useNavigate } from 'react-router-dom';
 import {
   Users,
   TrendingUp,
@@ -7,7 +9,9 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Activity,
-  Info
+  Info,
+  Wallet, // Add Wallet
+  AlertCircle // Add AlertCircle
 } from 'lucide-react';
 import {
   XAxis,
@@ -83,8 +87,14 @@ const StatCard = ({ title, value, change, icon: Icon, color }: any) => {
 
 export const Dashboard: React.FC = () => {
   const { role } = useRole();
+  const { profile } = useUserProfile(); // Get profile
+  const navigate = useNavigate();
   const [data, setData] = useState(STATS_DATA['PUSAT']);
   const [loading, setLoading] = useState(false);
+
+  // Check if profile is incomplete (only for real MITRA users)
+  const isProfileIncomplete = role === 'MITRA' && profile?.role === 'MITRA' &&
+    (!profile.phoneNumber || !profile.bankDetails?.accountNumber);
 
   useEffect(() => {
     // Simulate API fetch when role changes
@@ -118,6 +128,25 @@ export const Dashboard: React.FC = () => {
         </div>
       ) : (
         <>
+          {/* Complete Profile Banner */}
+          {isProfileIncomplete && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between shadow-sm animate-fade-in">
+              <div className="flex items-center space-x-3 mb-3 sm:mb-0">
+                <AlertCircle className="w-6 h-6 text-amber-600 shrink-0" />
+                <div>
+                  <h3 className="font-bold text-amber-800">Lengkapi Profil Anda</h3>
+                  <p className="text-sm text-amber-700">Mohon lengkapi data diri dan rekening bank untuk keperluan transfer fee.</p>
+                </div>
+              </div>
+              <button
+                onClick={() => navigate('/settings')}
+                className="w-full sm:w-auto bg-amber-100 text-amber-800 px-4 py-2 rounded-lg font-medium hover:bg-amber-200 transition-colors whitespace-nowrap"
+              >
+                Lengkapi Sekarang
+              </button>
+            </div>
+          )}
+
           {/* Welcome Message for MITRA */}
           {role === 'MITRA' && (
             <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-6 shadow-sm">
@@ -150,15 +179,26 @@ export const Dashboard: React.FC = () => {
 
           {/* Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {role === 'MITRA' ? (
+              <StatCard
+                title="Pencapaian Fee"
+                value={`Rp ${(profile?.feeAchievement || 0).toLocaleString('id-ID')}`}
+                change={profile?.feeAchievement ? "+100%" : "0%"}
+                icon={Wallet}
+                color="bg-emerald-500"
+              />
+            ) : (
+              <StatCard
+                title="Total Leads"
+                value={data.totalLeads.toLocaleString()}
+                change={data.leadsChange}
+                icon={Users}
+                color="bg-blue-500"
+              />
+            )}
+
             <StatCard
-              title="Total Leads"
-              value={data.totalLeads.toLocaleString()}
-              change={data.leadsChange}
-              icon={Users}
-              color="bg-blue-500"
-            />
-            <StatCard
-              title="Conversion Rate"
+              title={role === 'MITRA' ? "Total Leads" : "Conversion Rate"}
               value={data.conversion}
               change={data.conversionChange}
               icon={Target}
