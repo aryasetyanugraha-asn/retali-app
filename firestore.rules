@@ -33,6 +33,8 @@ service cloud.firestore {
     // Covers users/{userId} and all subcollections like users/{userId}/integrations/{doc}
     match /users/{userId} {
       allow read, write: if isSignedIn() && (request.auth.uid == userId || isPusat());
+      // Allow Cabang to read Mitra data
+      allow read: if isCabang() && resource.data.role == 'MITRA';
 
       match /{document=**} {
         allow read, write: if isSignedIn() && (request.auth.uid == userId || isPusat());
