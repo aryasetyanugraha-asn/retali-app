@@ -13,6 +13,7 @@ import { webhookHandler } from "./controllers/webhookController";
 
 // Import Triggers
 import { onCreateUser } from "./triggers/authTriggers";
+import { processScheduledPosts as processScheduledPostsService } from "./triggers/schedule";
 
 // Export Functions
 
@@ -30,6 +31,9 @@ export const metaWebhook = webhookHandler;
 
 // Auth Triggers
 export const onUserCreated = onCreateUser;
+
+// Scheduled Posts
+export const processScheduledPosts = processScheduledPostsService;
 
 // Example HTTP Trigger
 export const helloWorld = functions.https.onRequest((request, response) => {
