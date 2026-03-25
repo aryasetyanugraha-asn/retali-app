@@ -7,6 +7,26 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
 import { app } from '../../lib/firebase';
 import { Instagram, Facebook, Trash2, CheckCircle, AlertCircle, Share2, Music } from 'lucide-react';
 
+// Helper to generate a random string for code_verifier
+const generateRandomString = (length: number) => {
+  const array = new Uint32Array(length / 2);
+  window.crypto.getRandomValues(array);
+  return Array.from(array, dec => ('0' + dec.toString(16)).substr(-2)).join('');
+};
+
+// Helper to calculate SHA-256 for code_challenge
+const generateCodeChallenge = async (codeVerifier: string) => {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(codeVerifier);
+  const digest = await window.crypto.subtle.digest('SHA-256', data);
+
+  // Base64URL encode the result
+  return btoa(String.fromCharCode(...new Uint8Array(digest)))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+};
+
 export const SocialConnect: React.FC = () => {
   const { user } = useAuth();
   const [integration, setIntegration] = useState<any>(null);
@@ -58,7 +78,16 @@ export const SocialConnect: React.FC = () => {
                    throw new Error("Missing TikTok redirect URI configuration.");
                }
 
-               const result = await exchangeTikTokToken({ code, redirect_uri: redirectUri });
+               const codeVerifier = sessionStorage.getItem('tiktok_code_verifier');
+
+               const result = await exchangeTikTokToken({
+                 code,
+                 redirect_uri: redirectUri,
+                 code_verifier: codeVerifier
+               });
+
+               // Clean up storage
+               sessionStorage.removeItem('tiktok_code_verifier');
 
                console.log("TikTok Token Exchange Success:", result.data);
                setSuccessMessage("TikTok connected successfully!");
@@ -108,7 +137,7 @@ export const SocialConnect: React.FC = () => {
     }
   };
 
-  const handleTikTokLogin = () => {
+  const handleTikTokLogin = async () => {
     const clientKey = import.meta.env.VITE_TIKTOK_CLIENT_KEY;
     const redirectUri = import.meta.env.VITE_TIKTOK_REDIRECT_URI;
 
@@ -117,13 +146,24 @@ export const SocialConnect: React.FC = () => {
         return;
     }
 
-    // CSRF state protection
-    const state = Math.random().toString(36).substring(7);
-    // localStorage.setItem('tiktok_csrf_state', state); // Validating state is good practice
+    try {
+      // PKCE implementation
+      const codeVerifier = generateRandomString(64);
+      const codeChallenge = await generateCodeChallenge(codeVerifier);
 
-    const url = `https://www.tiktok.com/v2/auth/authorize/?client_key=${clientKey}&response_type=code&scope=user.info.basic,video.publish&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`;
+      // Store code_verifier to use during token exchange
+      sessionStorage.setItem('tiktok_code_verifier', codeVerifier);
 
-    window.location.href = url;
+      // CSRF state protection
+      const state = Math.random().toString(36).substring(7);
+
+      const url = `https://www.tiktok.com/v2/auth/authorize/?client_key=${clientKey}&response_type=code&scope=user.info.basic,video.publish&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&code_challenge=${codeChallenge}&code_challenge_method=S256`;
+
+      window.location.href = url;
+    } catch (err) {
+      console.error("Failed to generate PKCE challenge:", err);
+      setError("Failed to initialize TikTok login.");
+    }
   };
 
   if (loading) {
