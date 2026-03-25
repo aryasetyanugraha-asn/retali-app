@@ -17,12 +17,12 @@ export const exchangeTikTokToken = onCall({
     );
   }
 
-  const { code, redirect_uri } = request.data;
+  const { code, redirect_uri, code_verifier } = request.data;
 
-  if (!code || !redirect_uri) {
+  if (!code || !redirect_uri || !code_verifier) {
     throw new HttpsError(
       "invalid-argument",
-      "Missing code or redirect_uri."
+      "Missing code, redirect_uri, or code_verifier."
     );
   }
 
@@ -47,6 +47,7 @@ export const exchangeTikTokToken = onCall({
       code: code,
       grant_type: "authorization_code",
       redirect_uri: redirect_uri,
+      code_verifier: code_verifier,
     });
 
     const response = await axios.post(url, data.toString(), {
