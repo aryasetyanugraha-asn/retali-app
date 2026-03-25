@@ -8,12 +8,10 @@ import { generateAIContent } from "./services/aiService";
 import { postToSocial as postToSocialService } from "./services/socialService";
 import { exchangeTikTokToken as exchangeTikTokTokenService } from "./services/integrationService";
 
-// Import Controllers
-import { webhookHandler } from "./controllers/webhookController";
-
 // Import Triggers
 import { onCreateUser } from "./triggers/authTriggers";
 import { processScheduledPosts as processScheduledPostsService } from "./triggers/schedule";
+import { catchLeadWebhook as catchLeadWebhookService } from "./triggers/webhooks";
 
 // Export Functions
 
@@ -26,8 +24,8 @@ export const postToSocial = functions.https.onCall(postToSocialService);
 // Integration Service (v2)
 export const exchangeTikTokToken = exchangeTikTokTokenService;
 
-// Webhooks
-export const metaWebhook = webhookHandler;
+// Webhooks (v2)
+export const catchLeadWebhook = catchLeadWebhookService;
 
 // Auth Triggers
 export const onUserCreated = onCreateUser;
