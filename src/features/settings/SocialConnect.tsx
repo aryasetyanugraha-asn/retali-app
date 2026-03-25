@@ -157,7 +157,7 @@ export const SocialConnect: React.FC = () => {
       // CSRF state protection
       const state = Math.random().toString(36).substring(7);
 
-      const url = `https://www.tiktok.com/v2/auth/authorize/?client_key=${clientKey}&response_type=code&scope=user.info.basic,video.publish&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&code_challenge=${codeChallenge}&code_challenge_method=S256`;
+      const url = `https://www.tiktok.com/v2/auth/authorize/?client_key=${import.meta.env.VITE_TIKTOK_CLIENT_KEY}&response_type=code&scope=user.info.basic,video.publish&redirect_uri=${encodeURIComponent(import.meta.env.VITE_TIKTOK_REDIRECT_URI)}&state=${state}&code_challenge=${codeChallenge}&code_challenge_method=S256`;
 
       window.location.href = url;
     } catch (err) {
