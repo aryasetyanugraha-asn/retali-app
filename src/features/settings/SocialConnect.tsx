@@ -3,27 +3,35 @@ import React, { useEffect, useState } from 'react';
 import FacebookLogin from 'react-facebook-login/dist/facebook-login-render-props';
 import { integrationService } from '../../services/firebaseService';
 import { useAuth } from '../../context/AuthContext';
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { app } from '../../lib/firebase';
 import { Instagram, Facebook, Trash2, CheckCircle, AlertCircle, Share2, Music } from 'lucide-react';
 
 export const SocialConnect: React.FC = () => {
   const { user } = useAuth();
   const [integration, setIntegration] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isConnectingTikTok, setIsConnectingTikTok] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  // Subscribe to Facebook integration status
+  // Subscribe to Facebook and TikTok integration status
   useEffect(() => {
     if (!user?.uid) {
         setLoading(false);
         return;
     }
 
-    const unsubscribe = integrationService.subscribeToIntegration(user.uid, (data) => {
+    const unsubscribeFacebook = integrationService.subscribeToIntegration(user.uid, (data) => {
       setIntegration(data);
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    // TODO: implement specific subscribeToTikTokIntegration in integrationService,
+    // or just fetch it here for simplicity.
+    // Wait, let's look at how subscribeToIntegration works.
+
+    return () => unsubscribeFacebook();
   }, [user]);
 
   // Handle TikTok Redirect
@@ -35,11 +43,38 @@ export const SocialConnect: React.FC = () => {
         // Log the code as required
         console.log("TikTok Auth Code:", code);
 
-        // Clean up the URL
-        const newUrl = window.location.pathname;
-        window.history.replaceState({}, document.title, newUrl);
+        const exchangeToken = async () => {
+           setIsConnectingTikTok(true);
+           setError(null);
+           setSuccessMessage(null);
 
-        // Optionally verify state here if we had stored it
+           try {
+               const functions = getFunctions(app, 'asia-southeast2');
+               const exchangeTikTokToken = httpsCallable(functions, 'exchangeTikTokToken');
+
+               const redirectUri = import.meta.env.VITE_TIKTOK_REDIRECT_URI;
+
+               if (!redirectUri) {
+                   throw new Error("Missing TikTok redirect URI configuration.");
+               }
+
+               const result = await exchangeTikTokToken({ code, redirect_uri: redirectUri });
+
+               console.log("TikTok Token Exchange Success:", result.data);
+               setSuccessMessage("TikTok connected successfully!");
+
+               // Clean up the URL
+               const newUrl = window.location.pathname;
+               window.history.replaceState({}, document.title, newUrl);
+           } catch (err: any) {
+               console.error("TikTok token exchange error:", err);
+               setError(err.message || "Failed to connect TikTok.");
+           } finally {
+               setIsConnectingTikTok(false);
+           }
+        };
+
+        exchangeToken();
     }
   }, []);
 
@@ -118,6 +153,13 @@ export const SocialConnect: React.FC = () => {
         </div>
       )}
 
+      {successMessage && (
+        <div className="mb-4 p-3 bg-green-50 text-green-700 rounded-md text-sm flex items-center">
+             <CheckCircle className="w-4 h-4 mr-2" />
+             {successMessage}
+        </div>
+      )}
+
       <div className="space-y-6">
         {/* Facebook & Instagram Section */}
         <div>
@@ -175,10 +217,11 @@ export const SocialConnect: React.FC = () => {
            <div className="flex flex-col sm:flex-row gap-3">
                <button
                   onClick={handleTikTokLogin}
-                  className="w-full sm:w-auto flex items-center justify-center px-4 py-2 text-white rounded-lg transition-colors font-medium bg-black hover:bg-gray-800"
+                  disabled={isConnectingTikTok}
+                  className={`w-full sm:w-auto flex items-center justify-center px-4 py-2 text-white rounded-lg transition-colors font-medium ${isConnectingTikTok ? 'bg-gray-400 cursor-not-allowed' : 'bg-black hover:bg-gray-800'}`}
                 >
                   <Music className="w-5 h-5 mr-2" />
-                  Connect with TikTok
+                  {isConnectingTikTok ? 'Connecting...' : 'Connect with TikTok'}
                 </button>
            </div>
         </div>

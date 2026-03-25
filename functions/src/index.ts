@@ -6,6 +6,7 @@ admin.initializeApp();
 // Import Services
 import { generateAIContent } from "./services/aiService";
 import { postToSocial as postToSocialService } from "./services/socialService";
+import { exchangeTikTokToken as exchangeTikTokTokenService } from "./services/integrationService";
 
 // Import Controllers
 import { webhookHandler } from "./controllers/webhookController";
@@ -20,6 +21,9 @@ export const generateContent = generateAIContent;
 
 // Social Media Service (v1)
 export const postToSocial = functions.https.onCall(postToSocialService);
+
+// Integration Service (v2)
+export const exchangeTikTokToken = exchangeTikTokTokenService;
 
 // Webhooks
 export const metaWebhook = webhookHandler;
