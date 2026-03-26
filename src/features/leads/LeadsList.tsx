@@ -9,7 +9,8 @@ import {
   Facebook,
   Instagram,
   MessageCircle,
-  Video
+  Video,
+  X
 } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 
@@ -44,6 +45,15 @@ export const LeadsList: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<LeadStatus | 'ALL'>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newLead, setNewLead] = useState({
+    name: '',
+    phone: '',
+    email: '',
+    platform: 'WEB' as Platform,
+    notes: ''
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const unsubscribe = dbService.subscribeToCollection('leads', (data) => {
@@ -74,6 +84,36 @@ export const LeadsList: React.FC = () => {
 
   const getLeadsByStatus = (status: LeadStatus) => {
     return filteredLeads.filter(lead => lead.status === status);
+  };
+
+  const handleAddLead = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newLead.name || !newLead.phone) return;
+
+    setIsSubmitting(true);
+    try {
+      await dbService.addDocument('leads', {
+        name: newLead.name,
+        phone: newLead.phone,
+        email: newLead.email,
+        source: newLead.platform,
+        status: 'NEW',
+        notes: newLead.notes,
+        createdAt: new Date()
+      });
+      setIsModalOpen(false);
+      setNewLead({
+        name: '',
+        phone: '',
+        email: '',
+        platform: 'WEB',
+        notes: ''
+      });
+    } catch (error) {
+      console.error('Error adding new lead:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const onDragEnd = async (result: DropResult) => {
@@ -121,7 +161,10 @@ export const LeadsList: React.FC = () => {
           <h1 className="text-2xl font-bold text-gray-900">Leads Management</h1>
           <p className="text-gray-500 mt-1">Manage and track your potential Jamaah</p>
         </div>
-        <button className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors flex items-center">
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors flex items-center"
+        >
           <Phone className="w-4 h-4 mr-2" />
           Add New Lead
         </button>
@@ -233,6 +276,106 @@ export const LeadsList: React.FC = () => {
           })}
         </div>
       </DragDropContext>
+
+      {/* Add Lead Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+            <div className="flex justify-between items-center p-6 border-b border-gray-100">
+              <h2 className="text-xl font-semibold text-gray-900">Add New Lead</h2>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleAddLead} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={newLead.name}
+                  onChange={(e) => setNewLead({ ...newLead, name: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="John Doe"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Phone *
+                </label>
+                <input
+                  type="tel"
+                  required
+                  value={newLead.phone}
+                  onChange={(e) => setNewLead({ ...newLead, phone: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="+62 812 3456 7890"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  value={newLead.email}
+                  onChange={(e) => setNewLead({ ...newLead, email: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="john@example.com"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Platform source
+                </label>
+                <select
+                  value={newLead.platform}
+                  onChange={(e) => setNewLead({ ...newLead, platform: e.target.value as Platform })}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="WEB">Web</option>
+                  <option value="WHATSAPP">WhatsApp</option>
+                  <option value="FACEBOOK">Facebook</option>
+                  <option value="INSTAGRAM">Instagram</option>
+                  <option value="TIKTOK">TikTok</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Notes
+                </label>
+                <textarea
+                  value={newLead.notes}
+                  onChange={(e) => setNewLead({ ...newLead, notes: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none h-24"
+                  placeholder="Any additional notes about this lead..."
+                ></textarea>
+              </div>
+              <div className="pt-4 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg transition-colors border border-gray-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting || !newLead.name || !newLead.phone}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? 'Saving...' : 'Save Lead'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
