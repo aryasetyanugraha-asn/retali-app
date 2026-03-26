@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useUserProfile } from '../../hooks/useUserProfile';
 import { dbService } from '../../services/firebaseService';
 import { SocialConnect } from './SocialConnect';
+import { UserManagement } from './UserManagement';
 import { User, Phone, CreditCard, Save, Globe } from 'lucide-react';
 
 export const SettingsPage: React.FC = () => {
@@ -200,9 +201,10 @@ export const SettingsPage: React.FC = () => {
           </form>
         </div>
 
-        {/* Right Column: Integrations */}
+        {/* Right Column: Integrations & Admin Tools */}
         <div className="space-y-6">
             <SocialConnect />
+            <UserManagement />
         </div>
       </div>
     </div>
