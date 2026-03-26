@@ -105,5 +105,11 @@ export const functionsService = {
     const generateContentFn = httpsCallable(functions, 'generateContent');
     const result = await generateContentFn({ topic, platform, includeImage });
     return result.data;
+  },
+
+  sendWhatsAppMessage: async (phoneNumber: string, text: string, conversationId: string) => {
+    const sendWhatsAppMessageFn = httpsCallable(functions, 'sendWhatsAppMessage');
+    const result = await sendWhatsAppMessageFn({ phoneNumber, text, conversationId });
+    return result.data;
   }
 };
