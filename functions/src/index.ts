@@ -7,6 +7,7 @@ admin.initializeApp();
 import { generateAIContent } from "./services/aiService";
 import { postToSocial as postToSocialService } from "./services/socialService";
 import { exchangeTikTokToken as exchangeTikTokTokenService } from "./services/integrationService";
+import { setCustomUserClaims as setCustomUserClaimsService } from "./services/userService";
 
 // Import Triggers
 import { onCreateUser } from "./triggers/authTriggers";
@@ -14,6 +15,9 @@ import { processScheduledPosts as processScheduledPostsService } from "./trigger
 import { catchLeadWebhook as catchLeadWebhookService } from "./triggers/webhooks";
 
 // Export Functions
+
+// User Service (Custom Claims)
+export const setCustomUserClaims = setCustomUserClaimsService;
 
 // AI Service (v2)
 export const generateContent = generateAIContent;

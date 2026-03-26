@@ -46,13 +46,25 @@ service cloud.firestore {
       // PUSAT: Akses penuh
       allow read, write: if isPusat();
 
-      // CABANG: Akses data milik cabangnya
-      allow read, write: if isCabang() && resource.data.branchId == getUserData().branchId;
-      allow create: if isCabang() && request.resource.data.branchId == getUserData().branchId;
+      // CABANG: Akses data milik cabangnya berdasarkan custom claims atau fallback
+      allow read, write: if isCabang() && (
+        (request.auth.token.branchId != null && resource.data.branchId == request.auth.token.branchId) ||
+        (request.auth.token.branchId == null && resource.data.branchId == getUserData().branchId)
+      );
+      allow create: if isCabang() && (
+        (request.auth.token.branchId != null && request.resource.data.branchId == request.auth.token.branchId) ||
+        (request.auth.token.branchId == null && request.resource.data.branchId == getUserData().branchId)
+      );
 
-      // MITRA: Akses data yang ditugaskan padanya
-      allow read, write: if isMitra() && resource.data.assignedTo == request.auth.uid;
-      allow create: if isMitra() && request.resource.data.assignedTo == request.auth.uid;
+      // MITRA: Akses data yang ditugaskan padanya berdasarkan custom claims atau fallback
+      allow read, write: if isMitra() && (
+        (request.auth.token.partnerId != null && resource.data.partnerId == request.auth.token.partnerId) ||
+        (request.auth.token.partnerId == null && resource.data.partnerId == request.auth.uid)
+      );
+      allow create: if isMitra() && (
+        (request.auth.token.partnerId != null && request.resource.data.partnerId == request.auth.token.partnerId) ||
+        (request.auth.token.partnerId == null && request.resource.data.partnerId == request.auth.uid)
+      );
     }
 
     // 3. Content Requests (AI Jobs)
