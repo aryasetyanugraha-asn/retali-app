@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Search,
   Send,
@@ -10,12 +10,14 @@ import {
   Instagram,
   ArrowLeft
 } from 'lucide-react';
+import { dbService, functionsService } from '../../services/firebaseService';
 
 interface Message {
   id: string;
   sender: 'me' | 'them';
   text: string;
-  timestamp: string;
+  timestamp: any;
+  platform: string;
 }
 
 interface Conversation {
@@ -23,48 +25,11 @@ interface Conversation {
   name: string;
   platform: 'WHATSAPP' | 'FACEBOOK' | 'INSTAGRAM';
   lastMessage: string;
-  lastMessageTime: string;
+  lastMessageTime: any;
   unread: number;
-  messages: Message[];
+  phoneNumber?: string;
+  updatedAt?: any;
 }
-
-const MOCK_CONVERSATIONS: Conversation[] = [
-  {
-    id: '1',
-    name: 'Budi Santoso',
-    platform: 'WHATSAPP',
-    lastMessage: 'Waalaikumsalam, boleh minta infonya?',
-    lastMessageTime: '10:30',
-    unread: 2,
-    messages: [
-      { id: '1', sender: 'me', text: 'Assalamualaikum Pak Budi, ada yang bisa kami bantu?', timestamp: '10:00' },
-      { id: '2', sender: 'them', text: 'Waalaikumsalam, boleh minta infonya?', timestamp: '10:30' }
-    ]
-  },
-  {
-    id: '2',
-    name: 'Siti Aminah',
-    platform: 'INSTAGRAM',
-    lastMessage: 'Harga paket Umrah berapa kak?',
-    lastMessageTime: '09:15',
-    unread: 1,
-    messages: [
-      { id: '1', sender: 'them', text: 'Harga paket Umrah berapa kak?', timestamp: '09:15' }
-    ]
-  },
-  {
-    id: '3',
-    name: 'Rudi Hermawan',
-    platform: 'FACEBOOK',
-    lastMessage: 'Terima kasih informasinya.',
-    lastMessageTime: 'Yesterday',
-    unread: 0,
-    messages: [
-      { id: '1', sender: 'me', text: 'Berikut brosur paket kami Pak.', timestamp: 'Yesterday' },
-      { id: '2', sender: 'them', text: 'Terima kasih informasinya.', timestamp: 'Yesterday' }
-    ]
-  }
-];
 
 const QUICK_REPLIES = [
   "Assalamualaikum, ada yang bisa dibantu?",
@@ -76,12 +41,33 @@ const QUICK_REPLIES = [
 export const UnifiedInbox: React.FC = () => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [inputText, setInputText] = useState('');
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [activeMessages, setActiveMessages] = useState<Message[]>([]);
+  const [isSending, setIsSending] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Subscribe to conversations
+  useEffect(() => {
+    const unsubscribe = dbService.subscribeToCollection(
+      'conversations',
+      (data) => {
+        // Sort conversations by updatedAt descending locally if complex query is not indexed yet
+        const sortedData = data.sort((a, b) => {
+          const timeA = a.updatedAt?.toMillis() || 0;
+          const timeB = b.updatedAt?.toMillis() || 0;
+          return timeB - timeA;
+        });
+        setConversations(sortedData as Conversation[]);
+      }
+    );
+    return () => unsubscribe();
+  }, []);
 
   // Automatically select first conversation on desktop
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth >= 768 && !selectedId && MOCK_CONVERSATIONS.length > 0) {
-        setSelectedId(MOCK_CONVERSATIONS[0].id);
+      if (window.innerWidth >= 768 && !selectedId && conversations.length > 0) {
+        setSelectedId(conversations[0].id);
       }
     };
 
@@ -90,36 +76,92 @@ export const UnifiedInbox: React.FC = () => {
 
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [selectedId]);
+  }, [selectedId, conversations]);
 
-  // In a real app, this would update the state, but here we just mock the UI update
-  // We'll create a local state for the messages of the *selected* conversation to show interactivity
-  const selectedConversation = MOCK_CONVERSATIONS.find(c => c.id === selectedId);
-  const [activeMessages, setActiveMessages] = useState<Message[]>([]);
-
-  // Update active messages when selection changes
+  // Subscribe to messages of selected conversation
   useEffect(() => {
-    if (selectedConversation) {
-      setActiveMessages(selectedConversation.messages);
+    if (selectedId) {
+      // Clear previous messages when switching
+      setActiveMessages([]);
+
+      const unsubscribe = dbService.subscribeToCollection(
+        `conversations/${selectedId}/messages`,
+        (data) => {
+          // Sort messages by timestamp ascending
+          const sortedData = data.sort((a, b) => {
+             const timeA = a.timestamp?.toMillis() || 0;
+             const timeB = b.timestamp?.toMillis() || 0;
+             return timeA - timeB;
+          });
+          setActiveMessages(sortedData as Message[]);
+
+          // Reset unread count when viewing
+          dbService.updateDocument('conversations', selectedId, { unread: 0 }).catch(console.error);
+        }
+      );
+      return () => unsubscribe();
     } else {
       setActiveMessages([]);
     }
-  }, [selectedId, selectedConversation]);
+  }, [selectedId]);
 
-  const handleSend = () => {
-    if (!inputText.trim()) return;
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      sender: 'me',
-      text: inputText,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    };
-    setActiveMessages([...activeMessages, newMessage]);
-    setInputText('');
+  // Scroll to bottom when new messages arrive
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [activeMessages]);
+
+  const selectedConversation = conversations.find(c => c.id === selectedId);
+
+  const handleSend = async () => {
+    if (!inputText.trim() || !selectedConversation || isSending) return;
+
+    if (selectedConversation.platform === 'WHATSAPP' && selectedConversation.phoneNumber) {
+      setIsSending(true);
+      try {
+        await functionsService.sendWhatsAppMessage(
+          selectedConversation.phoneNumber,
+          inputText.trim(),
+          selectedConversation.id
+        );
+        setInputText('');
+      } catch (error) {
+        console.error("Failed to send WhatsApp message", error);
+        alert("Failed to send message. Please try again.");
+      } finally {
+        setIsSending(false);
+      }
+    } else {
+      // Mock for other platforms for now
+      const newMessage: Message = {
+        id: Date.now().toString(),
+        sender: 'me',
+        text: inputText,
+        timestamp: new Date(),
+        platform: selectedConversation.platform
+      };
+      setActiveMessages([...activeMessages, newMessage]);
+      setInputText('');
+    }
   };
 
   const handleQuickReply = (text: string) => {
     setInputText(text);
+  };
+
+  const formatTime = (timestamp: any) => {
+    if (!timestamp) return '';
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+
+    const today = new Date();
+    const isToday = date.getDate() === today.getDate() &&
+                    date.getMonth() === today.getMonth() &&
+                    date.getFullYear() === today.getFullYear();
+
+    if (isToday) {
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } else {
+      return date.toLocaleDateString([], { day: '2-digit', month: 'short' });
+    }
   };
 
   const PlatformIcon = ({ platform }: { platform: string }) => {
@@ -147,18 +189,23 @@ export const UnifiedInbox: React.FC = () => {
           </div>
         </div>
         <div className="flex-1 overflow-y-auto">
-          {MOCK_CONVERSATIONS.map((conv) => (
-            <div
-              key={conv.id}
-              onClick={() => setSelectedId(conv.id)}
-              className={`p-4 border-b border-gray-50 cursor-pointer hover:bg-gray-50 transition-colors ${selectedId === conv.id ? 'bg-emerald-50' : ''}`}
-            >
-              <div className="flex justify-between items-start mb-1">
-                <h4 className="font-semibold text-gray-900 text-sm">{conv.name}</h4>
-                <span className="text-xs text-gray-400">{conv.lastMessageTime}</span>
-              </div>
-              <p className="text-xs text-gray-500 truncate mb-2">{conv.lastMessage}</p>
-              <div className="flex items-center justify-between">
+          {conversations.length === 0 ? (
+            <div className="p-4 text-center text-sm text-gray-500">
+              No conversations yet.
+            </div>
+          ) : (
+            conversations.map((conv) => (
+              <div
+                key={conv.id}
+                onClick={() => setSelectedId(conv.id)}
+                className={`p-4 border-b border-gray-50 cursor-pointer hover:bg-gray-50 transition-colors ${selectedId === conv.id ? 'bg-emerald-50' : ''}`}
+              >
+                <div className="flex justify-between items-start mb-1">
+                  <h4 className="font-semibold text-gray-900 text-sm">{conv.name}</h4>
+                  <span className="text-xs text-gray-400">{formatTime(conv.lastMessageTime)}</span>
+                </div>
+                <p className="text-xs text-gray-500 truncate mb-2">{conv.lastMessage}</p>
+                <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded text-xs text-gray-600">
                   <PlatformIcon platform={conv.platform} />
                   <span className="capitalize text-[10px]">{conv.platform.toLowerCase()}</span>
@@ -168,9 +215,10 @@ export const UnifiedInbox: React.FC = () => {
                     {conv.unread}
                   </span>
                 )}
+                </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
 
@@ -215,11 +263,12 @@ export const UnifiedInbox: React.FC = () => {
                   }`}>
                     <p>{msg.text}</p>
                     <p className={`text-[10px] mt-1 text-right ${msg.sender === 'me' ? 'text-emerald-700' : 'text-gray-400'}`}>
-                      {msg.timestamp}
+                      {formatTime(msg.timestamp)}
                     </p>
                   </div>
                 </div>
               ))}
+              <div ref={messagesEndRef} />
             </div>
 
             {/* Input Area */}
@@ -256,7 +305,8 @@ export const UnifiedInbox: React.FC = () => {
                 </div>
                 <button
                   onClick={handleSend}
-                  className="p-3 bg-emerald-500 text-white rounded-full hover:bg-emerald-600 transition-colors shadow-sm"
+                  disabled={isSending}
+                  className="p-3 bg-emerald-500 text-white rounded-full hover:bg-emerald-600 transition-colors shadow-sm disabled:opacity-50"
                 >
                   <Send className="w-5 h-5" />
                 </button>

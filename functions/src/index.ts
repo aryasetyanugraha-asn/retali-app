@@ -8,11 +8,13 @@ import { generateAIContent } from "./services/aiService";
 import { postToSocial as postToSocialService } from "./services/socialService";
 import { exchangeTikTokToken as exchangeTikTokTokenService } from "./services/integrationService";
 import { setCustomUserClaims as setCustomUserClaimsService } from "./services/userService";
+import { sendWhatsAppMessage as sendWhatsAppMessageService } from "./services/whatsappService";
 
 // Import Triggers
 import { onCreateUser } from "./triggers/authTriggers";
 import { processScheduledPosts as processScheduledPostsService } from "./triggers/schedule";
 import { catchLeadWebhook as catchLeadWebhookService } from "./triggers/webhooks";
+import { whatsappWebhook as whatsappWebhookService } from "./triggers/whatsapp";
 
 // Export Functions
 
@@ -25,11 +27,15 @@ export const generateContent = generateAIContent;
 // Social Media Service (v1)
 export const postToSocial = functions.https.onCall(postToSocialService);
 
+// WhatsApp Service (v2)
+export const sendWhatsAppMessage = sendWhatsAppMessageService;
+
 // Integration Service (v2)
 export const exchangeTikTokToken = exchangeTikTokTokenService;
 
 // Webhooks (v2)
 export const catchLeadWebhook = catchLeadWebhookService;
+export const whatsappWebhook = whatsappWebhookService;
 
 // Auth Triggers
 export const onUserCreated = onCreateUser;
