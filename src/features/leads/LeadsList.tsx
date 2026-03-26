@@ -11,8 +11,9 @@ import {
   MessageCircle,
   Video
 } from 'lucide-react';
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 
-type LeadStatus = 'HOT' | 'WARM' | 'COLD' | 'NEW';
+type LeadStatus = 'NEW' | 'COLD' | 'WARM' | 'HOT';
 type Platform = 'WHATSAPP' | 'FACEBOOK' | 'INSTAGRAM' | 'TIKTOK' | 'WEB';
 
 interface Lead {
@@ -26,20 +27,7 @@ interface Lead {
   notes: string;
 }
 
-const StatusBadge = ({ status }: { status: LeadStatus }) => {
-  const styles = {
-    HOT: 'bg-red-100 text-red-700 border-red-200',
-    WARM: 'bg-orange-100 text-orange-700 border-orange-200',
-    COLD: 'bg-blue-100 text-blue-700 border-blue-200',
-    NEW: 'bg-green-100 text-green-700 border-green-200',
-  };
-
-  return (
-    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${styles[status]}`}>
-      {status}
-    </span>
-  );
-};
+const STATUSES: LeadStatus[] = ['NEW', 'COLD', 'WARM', 'HOT'];
 
 const PlatformIcon = ({ platform }: { platform: Platform }) => {
   switch (platform) {
@@ -59,13 +47,12 @@ export const LeadsList: React.FC = () => {
 
   useEffect(() => {
     const unsubscribe = dbService.subscribeToCollection('leads', (data) => {
-      // Map Firestore data to Lead interface
       const mappedLeads = data.map(doc => ({
         id: doc.id,
         name: doc.name || 'Unknown',
         phone: doc.phone || '',
         email: doc.email || '',
-        platform: doc.source || 'WEB', // Assuming 'source' in DB maps to 'platform'
+        platform: doc.source || 'WEB',
         status: doc.status || 'NEW',
         lastContact: doc.createdAt ? new Date(doc.createdAt.seconds * 1000).toLocaleDateString() : 'N/A',
         notes: doc.notes || ''
@@ -85,6 +72,40 @@ export const LeadsList: React.FC = () => {
     return matchesStatus && matchesSearch;
   });
 
+  const getLeadsByStatus = (status: LeadStatus) => {
+    return filteredLeads.filter(lead => lead.status === status);
+  };
+
+  const onDragEnd = async (result: DropResult) => {
+    const { destination, source, draggableId } = result;
+
+    if (!destination) return;
+
+    if (
+      destination.droppableId === source.droppableId &&
+      destination.index === source.index
+    ) {
+      return;
+    }
+
+    const newStatus = destination.droppableId as LeadStatus;
+
+    // Optimistic update
+    const updatedLeads = leads.map(lead =>
+      lead.id === draggableId ? { ...lead, status: newStatus } : lead
+    );
+    setLeads(updatedLeads);
+
+    // Update in Firestore
+    try {
+      await dbService.updateDocument('leads', draggableId, { status: newStatus });
+    } catch (error) {
+      console.error('Error updating lead status:', error);
+      // Revert optimistic update on error by triggering a refetch or ignoring
+      // since the subscription will override anyway
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -94,8 +115,8 @@ export const LeadsList: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="space-y-6 h-[calc(100vh-8rem)] flex flex-col">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 flex-shrink-0">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Leads Management</h1>
           <p className="text-gray-500 mt-1">Manage and track your potential Jamaah</p>
@@ -107,7 +128,7 @@ export const LeadsList: React.FC = () => {
       </div>
 
       {/* Filters & Search */}
-      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex flex-col sm:flex-row gap-4 justify-between items-center">
+      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex flex-col sm:flex-row gap-4 justify-between items-center flex-shrink-0">
         <div className="relative w-full sm:w-96">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
           <input
@@ -134,74 +155,84 @@ export const LeadsList: React.FC = () => {
         </div>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-100">
-                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase">Lead Name</th>
-                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase">Platform</th>
-                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase">Status</th>
-                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase">Contact</th>
-                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase">Last Interaction</th>
-                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {filteredLeads.map((lead) => (
-                <tr key={lead.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center">
-                      <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs mr-3">
-                        {lead.name.charAt(0)}
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{lead.name}</p>
-                        <p className="text-xs text-gray-500 truncate max-w-[150px]">{lead.notes}</p>
-                      </div>
+      {/* Kanban Board */}
+      <DragDropContext onDragEnd={onDragEnd}>
+        <div className="flex gap-6 overflow-x-auto pb-4 flex-grow items-start min-h-0">
+          {STATUSES.map((status) => {
+            const statusLeads = getLeadsByStatus(status);
+            return (
+              <div key={status} className="flex flex-col flex-shrink-0 w-80 bg-gray-50 rounded-xl max-h-full">
+                {/* Column Header */}
+                <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-100 rounded-t-xl sticky top-0 z-10">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold text-gray-700">{status}</h3>
+                    <span className="bg-white px-2 py-0.5 rounded-full text-xs font-medium text-gray-500 border border-gray-200">
+                      {statusLeads.length}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Droppable Area */}
+                <Droppable droppableId={status}>
+                  {(droppableProvided, droppableSnapshot) => (
+                    <div
+                      ref={droppableProvided.innerRef}
+                      {...droppableProvided.droppableProps}
+                      className={`flex-1 p-3 overflow-y-auto space-y-3 transition-colors ${
+                        droppableSnapshot.isDraggingOver ? 'bg-blue-50/50' : ''
+                      }`}
+                    >
+                      {statusLeads.map((lead, index) => (
+                        <Draggable key={lead.id} draggableId={lead.id} index={index}>
+                          {(draggableProvided, draggableSnapshot) => (
+                            <div
+                              ref={draggableProvided.innerRef}
+                              {...draggableProvided.draggableProps}
+                              {...draggableProvided.dragHandleProps}
+                              className={`bg-white p-4 rounded-lg shadow-sm border ${
+                                draggableSnapshot.isDragging ? 'border-blue-400 shadow-md ring-2 ring-blue-500/20' : 'border-gray-200 hover:border-blue-300'
+                              } transition-all cursor-grab active:cursor-grabbing`}
+                            >
+                              <div className="flex justify-between items-start mb-2">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs flex-shrink-0">
+                                    {lead.name.charAt(0)}
+                                  </div>
+                                  <div>
+                                    <h4 className="text-sm font-semibold text-gray-900">{lead.name}</h4>
+                                    <div className="flex items-center gap-1 mt-0.5">
+                                      <div className="p-1 rounded-full bg-gray-50">
+                                        <PlatformIcon platform={lead.platform} />
+                                      </div>
+                                      <span className="text-xs text-gray-500 truncate max-w-[120px]">{lead.notes || 'No notes'}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                                <button className="text-gray-400 hover:text-gray-600 p-1 rounded-md hover:bg-gray-100 transition-colors">
+                                  <MoreVertical className="w-4 h-4" />
+                                </button>
+                              </div>
+
+                              <div className="mt-4 flex items-center justify-between text-xs text-gray-500">
+                                <span className="flex items-center gap-1">
+                                  <Phone className="w-3 h-3" />
+                                  {lead.phone || 'No phone'}
+                                </span>
+                                <span>{lead.lastContact}</span>
+                              </div>
+                            </div>
+                          )}
+                        </Draggable>
+                      ))}
+                      {droppableProvided.placeholder}
                     </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <div className="p-1.5 rounded-full bg-gray-100">
-                        <PlatformIcon platform={lead.platform} />
-                      </div>
-                      <span className="text-xs text-gray-500 capitalize">{lead.platform.toLowerCase()}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <StatusBadge status={lead.status} />
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center space-x-2">
-                      <button className="p-1.5 hover:bg-green-50 rounded text-gray-400 hover:text-green-600 transition-colors">
-                        <MessageCircle className="w-4 h-4" />
-                      </button>
-                      <button className="p-1.5 hover:bg-blue-50 rounded text-gray-400 hover:text-blue-600 transition-colors">
-                        <Phone className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="text-sm text-gray-500">{lead.lastContact}</span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <button className="text-gray-400 hover:text-gray-600">
-                      <MoreVertical className="w-4 h-4" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  )}
+                </Droppable>
+              </div>
+            );
+          })}
         </div>
-        {filteredLeads.length === 0 && (
-          <div className="p-8 text-center text-gray-500">
-            No leads found matching your criteria.
-          </div>
-        )}
-      </div>
+      </DragDropContext>
     </div>
   );
 };
