@@ -26,6 +26,8 @@ export interface UserProfile {
   socialMedia?: SocialMedia;
   feeAchievement?: number;
   createdAt?: any;
+  branchId?: string;
+  partnerId?: string;
 }
 
 export const useUserProfile = () => {

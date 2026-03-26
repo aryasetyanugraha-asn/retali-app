@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { dbService } from '../../services/firebaseService';
+import { useUserProfile } from '../../hooks/useUserProfile';
 import {
   Search,
   Filter,
@@ -41,6 +42,7 @@ const PlatformIcon = ({ platform }: { platform: Platform }) => {
 };
 
 export const LeadsList: React.FC = () => {
+  const { profile } = useUserProfile();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<LeadStatus | 'ALL'>('ALL');
@@ -99,7 +101,10 @@ export const LeadsList: React.FC = () => {
         source: newLead.platform,
         status: 'NEW',
         notes: newLead.notes,
-        createdAt: new Date()
+        createdAt: new Date(),
+        branchId: profile?.branchId || null,
+        partnerId: profile?.partnerId || profile?.uid || null, // default partnerId to uid if mitra
+        assignedTo: profile?.uid || null
       });
       setIsModalOpen(false);
       setNewLead({
