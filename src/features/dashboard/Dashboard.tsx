@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useRole, UserRole } from '../../context/RoleContext';
-import { useUserProfile } from '../../hooks/useUserProfile'; // Import hook
+import { useRole } from '../../context/RoleContext';
+import { useUserProfile } from '../../hooks/useUserProfile';
 import { useNavigate } from 'react-router-dom';
+import { dbService } from '../../services/firebaseService';
 import {
   Users,
   TrendingUp,
@@ -10,8 +11,8 @@ import {
   ArrowDownRight,
   Activity,
   Info,
-  Wallet, // Add Wallet
-  AlertCircle // Add AlertCircle
+  Wallet,
+  AlertCircle
 } from 'lucide-react';
 import {
   XAxis,
@@ -23,42 +24,24 @@ import {
   Area
 } from 'recharts';
 
-// Mock Data Generators
-const generateGrowthData = (base: number, volatility: number) => {
-  return Array.from({ length: 7 }, (_, i) => ({
-    name: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][i],
-    value: Math.floor(base + Math.random() * volatility)
-  }));
-};
+const calculateChartData = (leads: any[]) => {
+  const data = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toLocaleDateString('en-US', { weekday: 'short' });
 
-const STATS_DATA = {
-  PUSAT: {
-    totalLeads: 15420,
-    leadsChange: '+12.5%',
-    conversion: '2.4%',
-    conversionChange: '-0.1%',
-    activeCampaigns: 24,
-    campaignsChange: '+3',
-    chartData: generateGrowthData(500, 100)
-  },
-  CABANG: {
-    totalLeads: 1250,
-    leadsChange: '+5.2%',
-    conversion: '4.8%',
-    conversionChange: '+1.2%',
-    activeCampaigns: 5,
-    campaignsChange: '+1',
-    chartData: generateGrowthData(50, 20)
-  },
-  MITRA: {
-    totalLeads: 48,
-    leadsChange: '+8.5%',
-    conversion: '15.2%',
-    conversionChange: '+2.5%',
-    activeCampaigns: 1,
-    campaignsChange: '0',
-    chartData: generateGrowthData(5, 5)
+    const count = leads.filter(lead => {
+      if (!lead.createdAt) return false;
+      const leadDate = lead.createdAt.seconds
+        ? new Date(lead.createdAt.seconds * 1000)
+        : new Date(lead.createdAt);
+      return leadDate.toDateString() === d.toDateString();
+    }).length;
+
+    data.push({ name: dateStr, value: count });
   }
+  return data;
 };
 
 const StatCard = ({ title, value, change, icon: Icon, color }: any) => {
@@ -87,23 +70,54 @@ const StatCard = ({ title, value, change, icon: Icon, color }: any) => {
 
 export const Dashboard: React.FC = () => {
   const { role } = useRole();
-  const { profile } = useUserProfile(); // Get profile
+  const { profile } = useUserProfile();
   const navigate = useNavigate();
-  const [data, setData] = useState(STATS_DATA['PUSAT']);
-  const [loading, setLoading] = useState(false);
 
-  // Check if profile is incomplete (only for real MITRA users)
+  const [data, setData] = useState({
+    totalLeads: 0,
+    leadsChange: '0%',
+    conversion: '0%',
+    conversionChange: '0%',
+    activeCampaigns: 0,
+    campaignsChange: '0',
+    chartData: calculateChartData([])
+  });
+  const [loading, setLoading] = useState(true);
+  const [recentActivities, setRecentActivities] = useState<any[]>([]);
+
   const isProfileIncomplete = role === 'MITRA' && profile?.role === 'MITRA' &&
     (!profile.phoneNumber || !profile.bankDetails?.accountNumber);
 
   useEffect(() => {
-    // Simulate API fetch when role changes
     setLoading(true);
-    const timer = setTimeout(() => {
-      setData(STATS_DATA[role as UserRole]);
+    const unsubscribe = dbService.subscribeToCollection('leads', (leadsData) => {
+      const totalLeads = leadsData.length;
+      const hotLeads = leadsData.filter(lead => lead.status === 'HOT').length;
+      const conversionRate = totalLeads > 0 ? ((hotLeads / totalLeads) * 100).toFixed(1) + '%' : '0%';
+      const chartData = calculateChartData(leadsData);
+
+      // Sort leads by creation date for recent activities
+      const sortedLeads = [...leadsData].sort((a, b) => {
+        const timeA = a.createdAt?.seconds || 0;
+        const timeB = b.createdAt?.seconds || 0;
+        return timeB - timeA;
+      }).slice(0, 4);
+
+      setRecentActivities(sortedLeads);
+
+      setData({
+        totalLeads,
+        leadsChange: '+0%', // Can be updated later with historical comparison
+        conversion: conversionRate,
+        conversionChange: '+0%',
+        activeCampaigns: role === 'PUSAT' ? 24 : role === 'CABANG' ? 5 : 1, // Placeholder until campaigns feature exists
+        campaignsChange: '+0',
+        chartData
+      });
       setLoading(false);
-    }, 500);
-    return () => clearTimeout(timer);
+    });
+
+    return () => unsubscribe();
   }, [role]);
 
   return (
@@ -251,33 +265,46 @@ export const Dashboard: React.FC = () => {
             {/* Role Specific Widget */}
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
               <h3 className="text-lg font-bold text-gray-800 mb-4">
-                {role === 'PUSAT' && 'Top Performing Branches'}
-                {role === 'CABANG' && 'Top Partners'}
-                {role === 'MITRA' && 'Recent Activities'}
+                Recent Leads
               </h3>
               <div className="space-y-4">
-                {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer">
-                    <div className="flex items-center">
-                      <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-bold">
-                        {role === 'MITRA' ? 'L' : i}
+                {recentActivities.map((lead, index) => {
+                  const leadName = lead.name || 'Unknown';
+                  const leadDate = lead.createdAt?.seconds
+                    ? new Date(lead.createdAt.seconds * 1000).toLocaleDateString()
+                    : 'Recently';
+
+                  return (
+                    <div key={lead.id || index} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer">
+                      <div className="flex items-center">
+                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
+                          {leadName.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="ml-3">
+                          <p className="text-sm font-medium text-gray-900 truncate max-w-[150px]">
+                            {leadName}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {leadDate}
+                          </p>
+                        </div>
                       </div>
-                      <div className="ml-3">
-                        <p className="text-sm font-medium text-gray-900">
-                          {role === 'PUSAT' && `Branch Jakarta South ${i}`}
-                          {role === 'CABANG' && `Partner Ahmad ${i}`}
-                          {role === 'MITRA' && `New Lead: Budi Santoso`}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {role === 'MITRA' ? 'Just now' : `${Math.floor(Math.random() * 100)} Leads generated`}
-                        </p>
+                      <div className="text-sm">
+                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${
+                          lead.status === 'HOT' ? 'bg-red-100 text-red-700 border-red-200' :
+                          lead.status === 'WARM' ? 'bg-orange-100 text-orange-700 border-orange-200' :
+                          lead.status === 'COLD' ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                          'bg-green-100 text-green-700 border-green-200'
+                        }`}>
+                          {lead.status || 'NEW'}
+                        </span>
                       </div>
                     </div>
-                    <div className="text-sm text-gray-500">
-                      {role === 'MITRA' ? 'Pending' : '+12%'}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
+                {recentActivities.length === 0 && (
+                  <p className="text-gray-500 text-sm py-4 text-center">No recent leads found.</p>
+                )}
               </div>
             </div>
           </div>
