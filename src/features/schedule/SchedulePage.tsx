@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScheduledPostsList } from '../content/ScheduledPostsList';
+import { PostingCalendar } from '../content/PostingCalendar';
 
 export const SchedulePage: React.FC = () => {
   return (
@@ -11,7 +11,7 @@ export const SchedulePage: React.FC = () => {
         </div>
       </div>
 
-      <ScheduledPostsList />
+      <PostingCalendar />
     </div>
   );
 };

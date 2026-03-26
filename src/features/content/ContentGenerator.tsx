@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { functionsService, dbService } from '../../services/firebaseService';
 import { useAuth } from '../../context/AuthContext';
-import { ScheduledPostsList } from './ScheduledPostsList';
+import { PostingCalendar } from "./PostingCalendar";
 import {
   Sparkles,
   Calendar,
@@ -248,7 +248,7 @@ export const ContentGenerator: React.FC = () => {
       </div>
       </div>
 
-      <ScheduledPostsList />
+      <PostingCalendar />
     </div>
   );
 };

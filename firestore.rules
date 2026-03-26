@@ -81,6 +81,32 @@ service cloud.firestore {
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
     }
 
+    // 4.1 Scheduled Posts (New Content AI Calendar)
+    match /scheduledPosts/{postId} {
+      // PUSAT: Full access
+      allow read, write: if isPusat();
+
+      // CABANG: Branch access
+      allow read, write: if isCabang() && (
+        (request.auth.token.branchId != null && resource.data.branchId == request.auth.token.branchId) ||
+        (request.auth.token.branchId == null && resource.data.branchId == getUserData().branchId)
+      );
+      allow create: if isCabang() && (
+        (request.auth.token.branchId != null && request.resource.data.branchId == request.auth.token.branchId) ||
+        (request.auth.token.branchId == null && request.resource.data.branchId == getUserData().branchId)
+      );
+
+      // MITRA: Partner access
+      allow read, write: if isMitra() && (
+        (request.auth.token.partnerId != null && resource.data.partnerId == request.auth.token.partnerId) ||
+        (request.auth.token.partnerId == null && resource.data.partnerId == request.auth.uid)
+      );
+      allow create: if isMitra() && (
+        (request.auth.token.partnerId != null && request.resource.data.partnerId == request.auth.token.partnerId) ||
+        (request.auth.token.partnerId == null && request.resource.data.partnerId == request.auth.uid)
+      );
+    }
+
     // 5. Conversations Collection
     match /conversations/{conversationId} {
       // PUSAT: Akses penuh
