@@ -81,7 +81,47 @@ service cloud.firestore {
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
     }
 
-    // 5. Default Block
+    // 5. Conversations Collection
+    match /conversations/{conversationId} {
+      // PUSAT: Akses penuh
+      allow read, write: if isPusat();
+
+      // CABANG: Akses data milik cabangnya berdasarkan custom claims atau fallback
+      allow read, write: if isCabang() && (
+        (request.auth.token.branchId != null && resource.data.branchId == request.auth.token.branchId) ||
+        (request.auth.token.branchId == null && resource.data.branchId == getUserData().branchId)
+      );
+      allow create: if isCabang() && (
+        (request.auth.token.branchId != null && request.resource.data.branchId == request.auth.token.branchId) ||
+        (request.auth.token.branchId == null && request.resource.data.branchId == getUserData().branchId)
+      );
+
+      // MITRA: Akses data yang ditugaskan padanya berdasarkan custom claims atau fallback
+      allow read, write: if isMitra() && (
+        (request.auth.token.partnerId != null && resource.data.partnerId == request.auth.token.partnerId) ||
+        (request.auth.token.partnerId == null && resource.data.partnerId == request.auth.uid)
+      );
+      allow create: if isMitra() && (
+        (request.auth.token.partnerId != null && request.resource.data.partnerId == request.auth.token.partnerId) ||
+        (request.auth.token.partnerId == null && request.resource.data.partnerId == request.auth.uid)
+      );
+
+      match /messages/{messageId} {
+        allow read, write: if isPusat();
+
+        allow read, write: if isCabang() && (
+          (request.auth.token.branchId != null && get(/databases/$(database)/documents/conversations/$(conversationId)).data.branchId == request.auth.token.branchId) ||
+          (request.auth.token.branchId == null && get(/databases/$(database)/documents/conversations/$(conversationId)).data.branchId == getUserData().branchId)
+        );
+
+        allow read, write: if isMitra() && (
+          (request.auth.token.partnerId != null && get(/databases/$(database)/documents/conversations/$(conversationId)).data.partnerId == request.auth.token.partnerId) ||
+          (request.auth.token.partnerId == null && get(/databases/$(database)/documents/conversations/$(conversationId)).data.partnerId == request.auth.uid)
+        );
+      }
+    }
+
+    // 6. Default Block
     match /{document=**} {
       allow read, write: if false;
     }
