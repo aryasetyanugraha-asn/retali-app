@@ -16,8 +16,8 @@ export const processScheduledPosts = onSchedule({
 
   try {
     // Query posts that are scheduled and the time has passed
-    const postsSnapshot = await db.collection("posts")
-      .where("status", "==", "SCHEDULED")
+    const postsSnapshot = await db.collection("scheduledPosts")
+      .where("status", "==", "PENDING")
       .where("scheduledAt", "<=", now)
       .get();
 
