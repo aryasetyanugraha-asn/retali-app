@@ -10,10 +10,10 @@ import {
   Facebook,
   Video,
   Image as ImageIcon,
-  MoreHorizontal,
   Plus,
   X,
-  Upload
+  Upload,
+  Trash2
 } from 'lucide-react';
 
 interface ScheduledPost {
@@ -47,7 +47,7 @@ export const PostingCalendar: React.FC = () => {
 
     setLoading(true);
 
-    let constraints = [orderBy('scheduledAt', 'asc')];
+    let constraints: any[] = [orderBy('scheduledAt', 'asc')];
     if (profile?.role === 'MITRA') {
       constraints.push(where('partnerId', '==', profile.partnerId || user.uid));
     } else if (profile?.role === 'CABANG') {
@@ -110,6 +110,18 @@ export const PostingCalendar: React.FC = () => {
     } catch (error) {
       console.error('Error scheduling post:', error);
       alert('Gagal menjadwalkan postingan.');
+    }
+  };
+
+  const handleDelete = async (postId: string) => {
+    const isConfirmed = window.confirm('Apakah Anda yakin ingin menghapus jadwal ini?');
+    if (!isConfirmed) return;
+
+    try {
+      await dbService.deleteDocument('scheduledPosts', postId);
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      alert('Gagal menghapus postingan.');
     }
   };
 
@@ -201,11 +213,20 @@ export const PostingCalendar: React.FC = () => {
                         <Calendar className="w-4 h-4 mr-2 text-emerald-600" />
                         {formatDate(post.scheduledAt)}
                     </div>
-                    <span className={`px-2 py-1 rounded text-xs font-bold ${
-                        post.status === 'POSTED' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
-                    }`}>
-                        {post.status}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2 py-1 rounded text-xs font-bold ${
+                          post.status === 'POSTED' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
+                      }`}>
+                          {post.status}
+                      </span>
+                      <button
+                        onClick={() => handleDelete(post.id)}
+                        className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                        title="Hapus jadwal"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                 </div>
 
                 <div className="flex items-center text-xs text-gray-500 mb-3">

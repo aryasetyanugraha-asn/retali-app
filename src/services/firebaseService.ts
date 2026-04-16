@@ -57,6 +57,10 @@ export const dbService = {
     return await setDoc(doc(db, collectionName, id), data, { merge: true });
   },
 
+  deleteDocument: async (collectionName: string, id: string) => {
+    return await deleteDoc(doc(db, collectionName, id));
+  },
+
   subscribeToCollection: (
     collectionName: string,
     callback: (data: any[]) => void,
