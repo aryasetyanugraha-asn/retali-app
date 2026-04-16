@@ -15,17 +15,50 @@ export const postToSocial = async (data: PostRequest, context: functions.https.C
          throw new functions.https.HttpsError('unauthenticated', 'User must be logged in.');
     }
 
-    // 2. Logic to fetch user's access token from Firestore (users/{uid}/tokens)
-    // const userRef = admin.firestore().collection('users').doc(context.auth.uid);
-    // ...
+    try {
+        const platform = data.platform.toLowerCase();
 
-    // 3. Call Meta Graph API
-    // axios.post(...)
+        // Fetch user's token for this platform
+        const integrationRef = admin.firestore().doc(`users/${context.auth.uid}/integrations/${platform}`);
+        const integrationDoc = await integrationRef.get();
 
-    return {
-        success: true,
-        message: `Simulated posting to ${data.platform}`
-    };
+        if (!integrationDoc.exists) {
+            throw new functions.https.HttpsError('not-found', `Integration ${platform} not found.`);
+        }
+
+        const tokenData = integrationDoc.data();
+        const accessToken = tokenData?.accessToken;
+
+        if (!accessToken) {
+             throw new functions.https.HttpsError('not-found', `Access token missing in integration ${platform}.`);
+        }
+
+        let success = false;
+
+        // Call appropriate API
+        if (platform === 'instagram') {
+            success = await postToInstagramAPI(accessToken, data.content, data.imageUrl);
+        } else if (platform === 'facebook') {
+            success = await postToFacebookGraphAPI(accessToken, data.content, data.imageUrl);
+        } else if (platform === 'tiktok') {
+            success = await postToTikTokAPI(accessToken, data.content, data.imageUrl);
+        } else {
+            throw new functions.https.HttpsError('invalid-argument', `Unknown platform ${platform}`);
+        }
+
+        if (!success) {
+            throw new functions.https.HttpsError('internal', `Failed to post to ${platform}`);
+        }
+
+        return {
+            success: true,
+            message: `Successfully posted to ${data.platform}`
+        };
+
+    } catch (err: any) {
+        logger.error(`Error processing direct post to platform ${data.platform}:`, err);
+        throw new functions.https.HttpsError('internal', err.message || 'An error occurred while posting');
+    }
 };
 
 // --- Scheduled Posts Logic ---
