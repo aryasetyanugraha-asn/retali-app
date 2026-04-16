@@ -232,7 +232,7 @@ export const SocialConnect: React.FC = () => {
                 appId={appId}
                 autoLoad={false}
                 fields="name,email,picture"
-                scope="public_profile,email,instagram_content_publish,pages_show_list,pages_read_engagement,pages_manage_posts"
+                scope="public_profile,email,instagram_content_publish,pages_show_list,pages_read_engagement,pages_manage_posts,instagram_basic"
                 callback={responseFacebook}
                 render={(renderProps: any) => (
                   <button
