@@ -28,30 +28,29 @@ export const processScheduledPosts = onSchedule({
 
     logger.info(`Found ${postsSnapshot.size} posts to process.`);
 
-    const batch = db.batch();
     const promises: Promise<void>[] = [];
 
     for (const doc of postsSnapshot.docs) {
       const postData = doc.data();
 
-      // Process each post asynchronously
-      const processPromise = processScheduledPost(doc.id, postData, db).then((success) => {
+      // Process each post asynchronously and update its status immediately
+      const processPromise = processScheduledPost(doc.id, postData, db).then(async (success) => {
         if (success) {
           logger.info(`Post ${doc.id} processed successfully.`);
-          batch.update(doc.ref, {
+          await doc.ref.update({
             status: "PUBLISHED",
             publishedAt: admin.firestore.FieldValue.serverTimestamp()
           });
         } else {
           logger.error(`Post ${doc.id} failed to process.`);
-          batch.update(doc.ref, {
+          await doc.ref.update({
             status: "FAILED",
             failedAt: admin.firestore.FieldValue.serverTimestamp()
           });
         }
-      }).catch((error) => {
+      }).catch(async (error) => {
         logger.error(`Unexpected error processing post ${doc.id}:`, error);
-        batch.update(doc.ref, {
+        await doc.ref.update({
           status: "FAILED",
           error: error.message || "Unknown error",
           failedAt: admin.firestore.FieldValue.serverTimestamp()
@@ -61,11 +60,8 @@ export const processScheduledPosts = onSchedule({
       promises.push(processPromise);
     }
 
-    // Wait for all posts to be processed
+    // Wait for all posts to be processed and updated
     await Promise.all(promises);
-
-    // Commit all status updates to Firestore
-    await batch.commit();
     logger.info("Finished processing scheduled posts and updating statuses.");
   } catch (error) {
     logger.error("Error querying or processing scheduled posts:", error);

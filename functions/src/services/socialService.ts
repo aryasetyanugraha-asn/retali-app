@@ -60,8 +60,8 @@ async function postToTikTokAPI(token: string, message: string, videoUrl?: string
 export async function processScheduledPost(postId: string, postData: any, db: admin.firestore.Firestore): Promise<boolean> {
   logger.info(`Processing post ${postId} for user ${postData.userId}`);
 
-  if (!postData.userId || !postData.platforms || !Array.isArray(postData.platforms)) {
-    logger.error(`Invalid post data for ${postId}: missing userId or platforms array.`);
+  if (!postData.userId || !postData.platforms || !Array.isArray(postData.platforms) || postData.platforms.length === 0) {
+    logger.error(`Invalid post data for ${postId}: missing userId, platforms array, or empty platforms array.`);
     return false;
   }
 
@@ -73,14 +73,15 @@ export async function processScheduledPost(postId: string, postData: any, db: ad
 
   for (const platform of postData.platforms) {
     try {
-      logger.info(`Attempting to post to ${platform} for user ${userId}`);
+      const normalizedPlatform = platform.toLowerCase();
+      logger.info(`Attempting to post to ${normalizedPlatform} (original: ${platform}) for user ${userId}`);
 
       // Fetch user's token for this platform
-      const integrationRef = db.doc(`users/${userId}/integrations/${platform}`);
+      const integrationRef = db.doc(`users/${userId}/integrations/${normalizedPlatform}`);
       const integrationDoc = await integrationRef.get();
 
       if (!integrationDoc.exists) {
-        logger.error(`Integration ${platform} not found for user ${userId}. Skipping this platform.`);
+        logger.error(`Integration ${normalizedPlatform} not found for user ${userId}. Skipping this platform.`);
         allSuccessful = false;
         continue;
       }
@@ -89,7 +90,7 @@ export async function processScheduledPost(postId: string, postData: any, db: ad
       const accessToken = tokenData?.accessToken;
 
       if (!accessToken) {
-         logger.error(`Access token missing in integration ${platform} for user ${userId}. Skipping this platform.`);
+         logger.error(`Access token missing in integration ${normalizedPlatform} for user ${userId}. Skipping this platform.`);
          allSuccessful = false;
          continue;
       }
@@ -97,21 +98,21 @@ export async function processScheduledPost(postId: string, postData: any, db: ad
       let success = false;
 
       // Call appropriate mock API
-      if (platform === 'facebook' || platform === 'instagram') {
+      if (normalizedPlatform === 'facebook' || normalizedPlatform === 'instagram') {
         success = await postToFacebookGraphAPI(accessToken, content, imageUrl);
-      } else if (platform === 'tiktok') {
+      } else if (normalizedPlatform === 'tiktok') {
         // Assume imageUrl contains video URL for TikTok for now
         success = await postToTikTokAPI(accessToken, content, imageUrl);
       } else {
-        logger.warn(`Unknown platform ${platform} for post ${postId}`);
+        logger.warn(`Unknown platform ${normalizedPlatform} for post ${postId}`);
         success = false;
       }
 
       if (!success) {
-        logger.error(`Failed to post to ${platform} for post ${postId}`);
+        logger.error(`Failed to post to ${normalizedPlatform} for post ${postId}`);
         allSuccessful = false;
       } else {
-        logger.info(`Successfully posted to ${platform} for post ${postId}`);
+        logger.info(`Successfully posted to ${normalizedPlatform} for post ${postId}`);
       }
 
     } catch (err) {
