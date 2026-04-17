@@ -29,6 +29,8 @@ interface Conversation {
   unread: number;
   phoneNumber?: string;
   updatedAt?: any;
+  participantId?: string;
+  avatarUrl?: string;
 }
 
 const QUICK_REPLIES = [
@@ -126,6 +128,22 @@ export const UnifiedInbox: React.FC = () => {
         setInputText('');
       } catch (error) {
         console.error("Failed to send WhatsApp message", error);
+        alert("Failed to send message. Please try again.");
+      } finally {
+        setIsSending(false);
+      }
+    } else if (selectedConversation.platform === 'FACEBOOK' || selectedConversation.platform === 'INSTAGRAM') {
+      setIsSending(true);
+      try {
+        await functionsService.replyToMetaMessage(
+          selectedConversation.id,
+          selectedConversation.participantId || selectedConversation.id.split('_').pop() || '',
+          selectedConversation.platform,
+          inputText.trim()
+        );
+        setInputText('');
+      } catch (error) {
+        console.error(`Failed to send ${selectedConversation.platform} message`, error);
         alert("Failed to send message. Please try again.");
       } finally {
         setIsSending(false);
@@ -236,9 +254,13 @@ export const UnifiedInbox: React.FC = () => {
                 >
                   <ArrowLeft className="w-6 h-6 text-gray-600" />
                 </button>
-                <div className="w-10 h-10 rounded-full bg-violet-100 flex items-center justify-center text-violet-600 font-bold mr-3">
-                  {selectedConversation.name.charAt(0)}
-                </div>
+                {selectedConversation.avatarUrl ? (
+                  <img src={selectedConversation.avatarUrl} alt={selectedConversation.name} className="w-10 h-10 rounded-full mr-3 object-cover" />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-violet-100 flex items-center justify-center text-violet-600 font-bold mr-3">
+                    {selectedConversation.name.charAt(0)}
+                  </div>
+                )}
                 <div>
                   <h3 className="font-bold text-gray-900">{selectedConversation.name}</h3>
                   <div className="flex items-center text-xs text-gray-500">
