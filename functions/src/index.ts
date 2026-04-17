@@ -6,7 +6,7 @@ admin.initializeApp();
 // Import Services
 import { generateAIContent } from "./services/aiService";
 import { postToSocial as postToSocialService } from "./services/socialService";
-import { exchangeTikTokToken as exchangeTikTokTokenService } from "./services/integrationService";
+import { exchangeTikTokToken as exchangeTikTokTokenService, exchangeMetaToken as exchangeMetaTokenService } from "./services/integrationService";
 import { setCustomUserClaims as setCustomUserClaimsService } from "./services/userService";
 import { sendWhatsAppMessage as sendWhatsAppMessageService } from "./services/whatsappService";
 
@@ -32,6 +32,7 @@ export const sendWhatsAppMessage = sendWhatsAppMessageService;
 
 // Integration Service (v2)
 export const exchangeTikTokToken = exchangeTikTokTokenService;
+export const exchangeMetaToken = exchangeMetaTokenService;
 
 // Webhooks (v2)
 export const catchLeadWebhook = catchLeadWebhookService;
