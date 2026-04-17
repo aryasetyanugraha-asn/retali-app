@@ -27,7 +27,9 @@ export const generateContent = generateAIContent;
 
 // Social Media Service (v1)
 export const postToSocial = functions.https.onCall(postToSocialService);
-export const replyToMetaMessage = functions.https.onCall(replyToMetaMessageService);
+
+// Social Media Service (v2)
+export const replyToMetaMessage = replyToMetaMessageService;
 
 // WhatsApp Service (v2)
 export const sendWhatsAppMessage = sendWhatsAppMessageService;
