@@ -15,6 +15,7 @@ import { onCreateUser } from "./triggers/authTriggers";
 import { processScheduledPosts as processScheduledPostsService } from "./triggers/schedule";
 import { catchLeadWebhook as catchLeadWebhookService } from "./triggers/webhooks";
 import { whatsappWebhook as whatsappWebhookService } from "./triggers/whatsapp";
+import { metaSocialWebhook as metaSocialWebhookService } from "./triggers/metaSocialWebhook";
 
 // Export Functions
 
@@ -37,6 +38,7 @@ export const exchangeMetaToken = exchangeMetaTokenService;
 // Webhooks (v2)
 export const catchLeadWebhook = catchLeadWebhookService;
 export const whatsappWebhook = whatsappWebhookService;
+export const metaSocialWebhook = metaSocialWebhookService;
 
 // Auth Triggers
 export const onUserCreated = onCreateUser;
