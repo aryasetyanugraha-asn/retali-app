@@ -95,3 +95,50 @@ export const exchangeTikTokToken = onCall({
     throw new HttpsError("internal", "Failed to exchange TikTok token.");
   }
 });
+
+export const exchangeMetaToken = onCall({
+  cors: true,
+  region: "asia-southeast2",
+  timeoutSeconds: 60,
+  memory: "256MiB"
+}, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "User must be logged in.");
+  }
+
+  const { shortLivedToken, responseData } = request.data;
+  if (!shortLivedToken) {
+    throw new HttpsError("invalid-argument", "Missing shortLivedToken.");
+  }
+
+  const appId = process.env.VITE_FACEBOOK_APP_ID || process.env.FACEBOOK_APP_ID;
+  const appSecret = process.env.FACEBOOK_APP_SECRET;
+
+  if (!appId || !appSecret) {
+    logger.error("Facebook App ID or Secret missing");
+    throw new HttpsError("failed-precondition", "Meta integration is not fully configured on the server.");
+  }
+
+  try {
+    const url = `https://graph.facebook.com/v21.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${appId}&client_secret=${appSecret}&fb_exchange_token=${shortLivedToken}`;
+    const response = await axios.get(url);
+    const longLivedToken = response.data.access_token;
+
+    const uid = request.auth.uid;
+    const db = admin.firestore();
+
+    const docData = {
+      ...responseData,
+      accessToken: longLivedToken,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+
+    await db.doc(`users/${uid}/integrations/facebook`).set({ ...docData, platform: 'facebook' }, { merge: true });
+    await db.doc(`users/${uid}/integrations/instagram`).set({ ...docData, platform: 'instagram' }, { merge: true });
+
+    return { success: true, message: "Meta token exchanged successfully" };
+  } catch (error: any) {
+    logger.error("Error exchanging Meta token:", error.response?.data || error.message);
+    throw new HttpsError("internal", "Failed to exchange Meta token.");
+  }
+});

@@ -138,10 +138,50 @@ async function postToInstagramAPI(token: string, message: string, imageUrl?: str
  * Mock function to simulate posting to Facebook via Graph API
  */
 async function postToFacebookGraphAPI(token: string, message: string, imageUrl?: string): Promise<boolean> {
-  logger.info("Mock Facebook Graph API call", { tokenPrefix: token.substring(0, 10), message, imageUrl });
+  logger.info("Facebook Graph API call", { tokenPrefix: token.substring(0, 10), message, imageUrl });
 
-  // Simulated success
-  return true;
+  try {
+    // 1. Get Facebook Pages associated with the user token
+    const accountsUrl = `https://graph.facebook.com/v21.0/me/accounts?access_token=${token}`;
+    const accountsResponse = await axios.get(accountsUrl);
+
+    const pages = accountsResponse.data.data;
+    if (!pages || pages.length === 0) {
+      throw new Error("No connected Facebook Pages found for this user.");
+    }
+
+    // Use the first page found
+    const page = pages[0];
+    const pageId = page.id;
+    const pageAccessToken = page.access_token;
+
+    logger.info(`Found Facebook Page ID: ${pageId}`);
+
+    // 2. Publish to Facebook Page
+    let publishUrl;
+    let params: any = {
+        access_token: pageAccessToken,
+    };
+
+    if (imageUrl) {
+        publishUrl = `https://graph.facebook.com/v21.0/${pageId}/photos`;
+        params.url = imageUrl;
+        params.message = message;
+    } else {
+        publishUrl = `https://graph.facebook.com/v21.0/${pageId}/feed`;
+        params.message = message;
+    }
+
+    const publishResponse = await axios.post(publishUrl, params);
+
+    logger.info(`Successfully published to Facebook Page: ${publishResponse.data.id}`);
+    return true;
+
+  } catch (error: any) {
+    logger.error("Error posting to Facebook:", error.response?.data || error.message);
+    const errorMessage = error.response?.data?.error?.message || error.message || "Unknown Meta API Error";
+    throw new Error(errorMessage);
+  }
 }
 
 /**

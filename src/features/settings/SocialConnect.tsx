@@ -110,8 +110,14 @@ export const SocialConnect: React.FC = () => {
   const responseFacebook = async (response: any) => {
     if (response.accessToken && user?.uid) {
       try {
-        await integrationService.saveUserIntegration(user.uid, response);
+        const functionsInstance = getFunctions(app, 'asia-southeast2');
+        const exchangeMetaTokenFn = httpsCallable(functionsInstance, 'exchangeMetaToken');
+        await exchangeMetaTokenFn({
+            shortLivedToken: response.accessToken,
+            responseData: response
+        });
         setError(null);
+        setSuccessMessage("Meta connected successfully!");
       } catch (err) {
         console.error("Error saving integration:", err);
         setError("Failed to save integration.");
