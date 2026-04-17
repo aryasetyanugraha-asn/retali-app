@@ -111,8 +111,8 @@ export const exchangeMetaToken = onCall({
     throw new HttpsError("invalid-argument", "Missing shortLivedToken.");
   }
 
-  const appId = process.env.VITE_FACEBOOK_APP_ID || process.env.FACEBOOK_APP_ID;
-  const appSecret = process.env.FACEBOOK_APP_SECRET;
+  const appId = process.env.META_APP_ID;
+  const appSecret = process.env.META_APP_SECRET;
 
   if (!appId || !appSecret) {
     logger.error("Facebook App ID or Secret missing");
