@@ -308,9 +308,51 @@ export const replyToMetaMessage = onCall({ region: "asia-southeast2", cors: true
              throw new HttpsError('not-found', `Access token missing in integration ${normalizedPlatform}.`);
         }
 
+        // 2. Fetch conversation to get recipientId (the page or IG account ID)
+        const conversationRef = admin.firestore().collection("conversations").doc(conversationId);
+        const conversationDoc = await conversationRef.get();
+        let targetPageId = conversationDoc.exists ? conversationDoc.data()?.recipientId : null;
+
+        let pageAccessToken = accessToken;
+        let sendEndpointId = "me";
+
+        const accountsUrl = `https://graph.facebook.com/v21.0/me/accounts?fields=access_token,id,name,instagram_business_account&access_token=${accessToken}`;
+        const accountsResponse = await axios.get(accountsUrl);
+        const pages = accountsResponse.data.data;
+
+        if (!pages || pages.length === 0) {
+             throw new HttpsError('failed-precondition', 'No connected Meta Pages found.');
+        }
+
+        let foundPage = null;
+
+        if (normalizedPlatform === 'facebook') {
+            if (targetPageId) {
+                foundPage = pages.find((p: any) => p.id === targetPageId);
+            }
+            if (!foundPage) {
+                foundPage = pages[0]; // fallback to first page
+            }
+            pageAccessToken = foundPage.access_token;
+            sendEndpointId = foundPage.id;
+        } else if (normalizedPlatform === 'instagram') {
+            if (targetPageId) {
+                foundPage = pages.find((p: any) => p.instagram_business_account?.id === targetPageId);
+            }
+            if (!foundPage) {
+                // Fallback: Find the first page with an IG account
+                foundPage = pages.find((p: any) => p.instagram_business_account?.id);
+            }
+
+            if (!foundPage || !foundPage.instagram_business_account) {
+                throw new HttpsError('failed-precondition', 'No connected Instagram Business Account found.');
+            }
+            pageAccessToken = foundPage.access_token;
+            sendEndpointId = foundPage.instagram_business_account.id;
+        }
+
         // Call Meta Graph API to send message
-        // The endpoint is usually /me/messages
-        const url = `https://graph.facebook.com/v21.0/me/messages`;
+        const url = `https://graph.facebook.com/v21.0/${sendEndpointId}/messages`;
 
         const payload = {
             recipient: { id: participantId },
@@ -319,14 +361,13 @@ export const replyToMetaMessage = onCall({ region: "asia-southeast2", cors: true
         };
 
         const response = await axios.post(url, payload, {
-            params: { access_token: accessToken }
+            params: { access_token: pageAccessToken }
         });
 
         const messageId = response.data.message_id || `sent_${Date.now()}`;
         const timestamp = admin.firestore.Timestamp.now();
 
         // Save the message to Firestore
-        const conversationRef = admin.firestore().collection("conversations").doc(conversationId);
         const messagesRef = conversationRef.collection("messages");
 
         await messagesRef.doc(messageId).set({
