@@ -348,11 +348,11 @@ export const replyToMetaMessage = onCall({ region: "asia-southeast2", cors: true
                 throw new HttpsError('failed-precondition', 'No connected Instagram Business Account found.');
             }
             pageAccessToken = foundPage.access_token;
-            sendEndpointId = foundPage.instagram_business_account.id;
+            sendEndpointId = foundPage.id; // Fix: Use Page ID for Instagram messages endpoint, not IG Account ID
         }
 
         // Call Meta Graph API to send message
-        const url = `https://graph.facebook.com/v21.0/${sendEndpointId}/messages`;
+        const url = `https://graph.facebook.com/v25.0/${sendEndpointId}/messages`;
 
         const payload = {
             recipient: { id: participantId },
@@ -361,7 +361,10 @@ export const replyToMetaMessage = onCall({ region: "asia-southeast2", cors: true
         };
 
         const response = await axios.post(url, payload, {
-            params: { access_token: pageAccessToken }
+            headers: {
+                Authorization: `Bearer ${pageAccessToken}`,
+                "Content-Type": "application/json"
+            }
         });
 
         const messageId = response.data.message_id || `sent_${Date.now()}`;
