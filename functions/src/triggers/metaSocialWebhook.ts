@@ -1,5 +1,6 @@
 import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
+import * as admin from "firebase-admin";
 
 export const metaSocialWebhook = onRequest({
   region: "asia-southeast2",
@@ -42,8 +43,88 @@ export const metaSocialWebhook = onRequest({
       if (body.object === "page" || body.object === "instagram") {
         logger.info(`Received event from object type: ${body.object}`);
 
-        // At this stage, we only log the payload.
-        // We will process and save these to Firestore in the next iteration.
+        const platform = body.object === "page" ? "FACEBOOK" : "INSTAGRAM";
+
+        for (const entry of body.entry) {
+          if (entry.messaging) {
+            // Messenger / Instagram Direct Messages
+            for (const messagingEvent of entry.messaging) {
+              if (messagingEvent.message && !messagingEvent.message.is_echo) {
+                const senderId = messagingEvent.sender.id;
+                const messageId = messagingEvent.message.mid;
+                const text = messagingEvent.message.text || "";
+                const timestamp = messagingEvent.timestamp;
+
+                let conversationId = `meta_${platform.toLowerCase()}_${senderId}`;
+
+                const conversationRef = admin.firestore().collection("conversations").doc(conversationId);
+                const messagesRef = conversationRef.collection("messages");
+
+                await messagesRef.doc(messageId).set({
+                  id: messageId,
+                  sender: "them",
+                  text: text,
+                  timestamp: admin.firestore.Timestamp.fromMillis(parseInt(timestamp)),
+                  platform: platform,
+                  messageType: "message"
+                });
+
+                await conversationRef.set({
+                  id: conversationId,
+                  participantId: senderId,
+                  name: `User ${senderId}`, // Will need Meta Graph API to resolve actual name
+                  platform: platform,
+                  lastMessage: text,
+                  lastMessageTime: admin.firestore.Timestamp.fromMillis(parseInt(timestamp)),
+                  unread: admin.firestore.FieldValue.increment(1),
+                  updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+                }, { merge: true });
+
+                logger.info(`Saved ${platform} message from ${senderId}`);
+              }
+            }
+          }
+
+          if (entry.changes) {
+            // Comments (Feed)
+            for (const change of entry.changes) {
+              if (change.value && change.value.item === "comment" && change.value.verb === "add") {
+                const senderId = change.value.from.id;
+                const senderName = change.value.from.name;
+                const commentId = change.value.comment_id;
+                const text = change.value.text;
+                const timestamp = change.value.created_time; // usually unix timestamp
+
+                let conversationId = `meta_${platform.toLowerCase()}_comment_${senderId}`;
+
+                const conversationRef = admin.firestore().collection("conversations").doc(conversationId);
+                const messagesRef = conversationRef.collection("messages");
+
+                await messagesRef.doc(commentId).set({
+                  id: commentId,
+                  sender: "them",
+                  text: text,
+                  timestamp: admin.firestore.Timestamp.fromMillis(parseInt(timestamp) * 1000),
+                  platform: platform,
+                  messageType: "comment"
+                });
+
+                await conversationRef.set({
+                  id: conversationId,
+                  participantId: senderId,
+                  name: senderName || `User ${senderId}`,
+                  platform: platform,
+                  lastMessage: text,
+                  lastMessageTime: admin.firestore.Timestamp.fromMillis(parseInt(timestamp) * 1000),
+                  unread: admin.firestore.FieldValue.increment(1),
+                  updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+                }, { merge: true });
+
+                logger.info(`Saved ${platform} comment from ${senderId}`);
+              }
+            }
+          }
+        }
 
         // Always return 200 OK to acknowledge receipt, otherwise Meta will retry
         res.status(200).send("EVENT_RECEIVED");
