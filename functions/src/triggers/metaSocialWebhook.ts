@@ -7,35 +7,33 @@ import axios from "axios";
 async function getPageAccessToken(accountId: string, platform: string): Promise<string | null> {
   try {
     const db = admin.firestore();
-    const integrationsRef = db.collectionGroup("integrations");
-    let snapshot;
 
-    // We check both facebook and instagram platforms based on the incoming webhook
-    if (platform === "FACEBOOK") {
-      snapshot = await integrationsRef
-        .where("platform", "==", "facebook")
-        .get();
-    } else if (platform === "INSTAGRAM") {
-      snapshot = await integrationsRef
-        .where("platform", "==", "instagram")
-        .get();
-    } else {
-      return null;
+    // Instead of collection group query, find a user with PUSAT role
+    // and look up their specific platform integration document.
+    const usersSnapshot = await db.collection("users")
+      .where("role", "==", "PUSAT")
+      .limit(1)
+      .get();
+
+    if (usersSnapshot.empty) {
+        return null;
     }
 
-    if (snapshot && !snapshot.empty) {
-      // Find the integration that matches the accountId
-      // The integration document stores `responseData` with `userID` or `accounts`
-      // but simpler: for single/multi-tenant, we can just use the first valid token we find
-      // since the prompt says "Retrieve the PAGE_ACCESS_TOKEN from our Firestore database"
-      // and memory says "saving the resulting token to both the facebook and instagram integration documents".
-      // Usually, there's only one user or we need to map it properly.
-      // Let's just return the first valid token for now.
-      for (const doc of snapshot.docs) {
-        const data = doc.data();
-        if (data.accessToken) {
-          return data.accessToken;
-        }
+    const userId = usersSnapshot.docs[0].id;
+    let targetPlatform = platform === "FACEBOOK" ? "facebook" : platform === "INSTAGRAM" ? "instagram" : null;
+
+    if (!targetPlatform) return null;
+
+    const integrationDoc = await db.collection("users")
+      .doc(userId)
+      .collection("integrations")
+      .doc(targetPlatform)
+      .get();
+
+    if (integrationDoc.exists) {
+      const data = integrationDoc.data();
+      if (data && data.accessToken) {
+        return data.accessToken;
       }
     }
 

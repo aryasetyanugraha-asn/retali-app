@@ -1,4 +1,5 @@
 import * as functions from "firebase-functions/v1";
+import { onCall, HttpsError } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import * as admin from "firebase-admin";
 import axios from "axios";
@@ -275,34 +276,36 @@ export async function processScheduledPost(postId: string, postData: any, db: ad
 /**
  * Callable function to reply to a Meta (Facebook/Instagram) message
  */
-export const replyToMetaMessage = async (data: any, context: functions.https.CallableContext) => {
+export const replyToMetaMessage = onCall({ region: "asia-southeast2", cors: true }, async (request) => {
+    const { data, auth: contextAuth } = request;
+
     // 1. Auth Check
-    if (!context.auth) {
-         throw new functions.https.HttpsError('unauthenticated', 'User must be logged in to send a message.');
+    if (!contextAuth) {
+         throw new HttpsError('unauthenticated', 'User must be logged in to send a message.');
     }
 
     const { conversationId, participantId, platform, text } = data;
 
     if (!conversationId || !participantId || !platform || !text) {
-        throw new functions.https.HttpsError('invalid-argument', 'Missing required fields.');
+        throw new HttpsError('invalid-argument', 'Missing required fields.');
     }
 
     const normalizedPlatform = platform.toLowerCase();
 
     try {
         // Fetch user's token for this platform
-        const integrationRef = admin.firestore().doc(`users/${context.auth.uid}/integrations/${normalizedPlatform}`);
+        const integrationRef = admin.firestore().doc(`users/${contextAuth.uid}/integrations/${normalizedPlatform}`);
         const integrationDoc = await integrationRef.get();
 
         if (!integrationDoc.exists) {
-            throw new functions.https.HttpsError('not-found', `Integration ${normalizedPlatform} not found.`);
+            throw new HttpsError('not-found', `Integration ${normalizedPlatform} not found.`);
         }
 
         const tokenData = integrationDoc.data();
         const accessToken = tokenData?.accessToken;
 
         if (!accessToken) {
-             throw new functions.https.HttpsError('not-found', `Access token missing in integration ${normalizedPlatform}.`);
+             throw new HttpsError('not-found', `Access token missing in integration ${normalizedPlatform}.`);
         }
 
         // Call Meta Graph API to send message
@@ -351,6 +354,6 @@ export const replyToMetaMessage = async (data: any, context: functions.https.Cal
 
     } catch (err: any) {
         logger.error(`Error sending reply to ${platform}:`, err.response?.data || err.message);
-        throw new functions.https.HttpsError('internal', err.response?.data?.error?.message || err.message || 'An error occurred while sending message');
+        throw new HttpsError('internal', err.response?.data?.error?.message || err.message || 'An error occurred while sending message');
     }
-};
+});
