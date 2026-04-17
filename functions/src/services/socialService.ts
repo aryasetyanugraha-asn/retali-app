@@ -314,7 +314,6 @@ export const replyToMetaMessage = onCall({ region: "asia-southeast2", cors: true
         let targetPageId = conversationDoc.exists ? conversationDoc.data()?.recipientId : null;
 
         let pageAccessToken = accessToken;
-        let sendEndpointId = "me";
 
         const accountsUrl = `https://graph.facebook.com/v21.0/me/accounts?fields=access_token,id,name,instagram_business_account&access_token=${accessToken}`;
         const accountsResponse = await axios.get(accountsUrl);
@@ -334,7 +333,6 @@ export const replyToMetaMessage = onCall({ region: "asia-southeast2", cors: true
                 foundPage = pages[0]; // fallback to first page
             }
             pageAccessToken = foundPage.access_token;
-            sendEndpointId = foundPage.id;
         } else if (normalizedPlatform === 'instagram') {
             if (targetPageId) {
                 foundPage = pages.find((p: any) => p.instagram_business_account?.id === targetPageId);
@@ -348,24 +346,17 @@ export const replyToMetaMessage = onCall({ region: "asia-southeast2", cors: true
                 throw new HttpsError('failed-precondition', 'No connected Instagram Business Account found.');
             }
             pageAccessToken = foundPage.access_token;
-            sendEndpointId = foundPage.id; // Fix: Use Page ID for Instagram messages endpoint, not IG Account ID
         }
 
         // Call Meta Graph API to send message
-        const url = `https://graph.facebook.com/v25.0/${sendEndpointId}/messages`;
+        const url = `https://graph.facebook.com/v25.0/me/messages?access_token=${pageAccessToken}`;
 
         const payload = {
             recipient: { id: participantId },
-            message: { text: text },
-            messaging_type: "RESPONSE"
+            message: { text: text }
         };
 
-        const response = await axios.post(url, payload, {
-            headers: {
-                Authorization: `Bearer ${pageAccessToken}`,
-                "Content-Type": "application/json"
-            }
-        });
+        const response = await axios.post(url, payload);
 
         const messageId = response.data.message_id || `sent_${Date.now()}`;
         const timestamp = admin.firestore.Timestamp.now();
