@@ -5,7 +5,7 @@ admin.initializeApp();
 
 // Import Services
 import { generateAIContent } from "./services/aiService";
-import { postToSocial as postToSocialService, replyToMetaMessage as replyToMetaMessageService } from "./services/socialService";
+import { postToSocial as postToSocialService } from "./services/socialService";
 import { exchangeTikTokToken as exchangeTikTokTokenService, exchangeMetaToken as exchangeMetaTokenService } from "./services/integrationService";
 import { setCustomUserClaims as setCustomUserClaimsService } from "./services/userService";
 import { sendWhatsAppMessage as sendWhatsAppMessageService } from "./services/whatsappService";
@@ -27,7 +27,6 @@ export const generateContent = generateAIContent;
 
 // Social Media Service (v1)
 export const postToSocial = functions.https.onCall(postToSocialService);
-export const replyToMetaMessage = functions.https.onCall(replyToMetaMessageService);
 
 // WhatsApp Service (v2)
 export const sendWhatsAppMessage = sendWhatsAppMessageService;

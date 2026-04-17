@@ -271,3 +271,86 @@ export async function processScheduledPost(postId: string, postData: any, db: ad
 
   return allSuccessful;
 }
+
+/**
+ * Callable function to reply to a Meta (Facebook/Instagram) message
+ */
+export const replyToMetaMessage = async (data: any, context: functions.https.CallableContext) => {
+    // 1. Auth Check
+    if (!context.auth) {
+         throw new functions.https.HttpsError('unauthenticated', 'User must be logged in to send a message.');
+    }
+
+    const { conversationId, participantId, platform, text } = data;
+
+    if (!conversationId || !participantId || !platform || !text) {
+        throw new functions.https.HttpsError('invalid-argument', 'Missing required fields.');
+    }
+
+    const normalizedPlatform = platform.toLowerCase();
+
+    try {
+        // Fetch user's token for this platform
+        const integrationRef = admin.firestore().doc(`users/${context.auth.uid}/integrations/${normalizedPlatform}`);
+        const integrationDoc = await integrationRef.get();
+
+        if (!integrationDoc.exists) {
+            throw new functions.https.HttpsError('not-found', `Integration ${normalizedPlatform} not found.`);
+        }
+
+        const tokenData = integrationDoc.data();
+        const accessToken = tokenData?.accessToken;
+
+        if (!accessToken) {
+             throw new functions.https.HttpsError('not-found', `Access token missing in integration ${normalizedPlatform}.`);
+        }
+
+        // Call Meta Graph API to send message
+        // The endpoint is usually /me/messages
+        const url = `https://graph.facebook.com/v21.0/me/messages`;
+
+        const payload = {
+            recipient: { id: participantId },
+            message: { text: text },
+            messaging_type: "RESPONSE"
+        };
+
+        const response = await axios.post(url, payload, {
+            params: { access_token: accessToken }
+        });
+
+        const messageId = response.data.message_id || `sent_${Date.now()}`;
+        const timestamp = admin.firestore.Timestamp.now();
+
+        // Save the message to Firestore
+        const conversationRef = admin.firestore().collection("conversations").doc(conversationId);
+        const messagesRef = conversationRef.collection("messages");
+
+        await messagesRef.doc(messageId).set({
+            id: messageId,
+            sender: "me",
+            text: text,
+            timestamp: timestamp,
+            platform: platform,
+        });
+
+        // Update the conversation document
+        await conversationRef.set({
+            lastMessage: text,
+            lastMessageTime: timestamp,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        }, { merge: true });
+
+        logger.info(`Successfully replied to ${platform} conversation ${conversationId}`);
+
+        return {
+            success: true,
+            messageId: messageId,
+            message: "Message sent successfully."
+        };
+
+    } catch (err: any) {
+        logger.error(`Error sending reply to ${platform}:`, err.response?.data || err.message);
+        throw new functions.https.HttpsError('internal', err.response?.data?.error?.message || err.message || 'An error occurred while sending message');
+    }
+};
