@@ -332,6 +332,14 @@ export const replyToMetaMessage = onCall({ region: "asia-southeast2", cors: true
             messaging_type: "RESPONSE"
         };
 
+        // HARDCORE DEBUGGING LOGS - DO NOT REMOVE
+        console.log("=== SEND API DEBUG ===");
+        console.log("Platform:", platform);
+        console.log("Extracted Token:", accessToken ? `Starts with ${accessToken.substring(0,10)}...` : "UNDEFINED OR NULL");
+        console.log("Constructed URL:", url);
+        console.log("Payload:", JSON.stringify(payload));
+        console.log("======================");
+
         const response = await axios.post(url, payload, {
             headers: { 'Content-Type': 'application/json' }
         });
