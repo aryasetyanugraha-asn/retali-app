@@ -345,11 +345,22 @@ export const replyToMetaMessage = onCall({ region: "asia-southeast2", cors: true
         console.log("Payload:", JSON.stringify(payload));
         console.log("======================");
 
-        const response = await axios.post(url, payload, {
-            headers: { 'Content-Type': 'application/json' }
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
         });
 
-        const messageId = response.data.message_id || `sent_${Date.now()}`;
+        const responseData = await response.json();
+
+        if (!response.ok) {
+            console.error("META API ERROR:", JSON.stringify(responseData));
+            throw new Error(responseData.error?.message || "Failed to send Meta message");
+        }
+
+        const messageId = responseData.message_id || `sent_${Date.now()}`;
         const timestamp = admin.firestore.Timestamp.now();
 
         // Save the message to Firestore
