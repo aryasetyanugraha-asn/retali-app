@@ -303,61 +303,21 @@ export const replyToMetaMessage = onCall({ region: "asia-southeast2", cors: true
 
         const tokenData = integrationDoc.data();
         const accessToken = tokenData?.accessToken;
+        const pageId = tokenData?.id;
 
         if (!accessToken) {
              throw new HttpsError('not-found', `Access token missing in integration ${normalizedPlatform}.`);
         }
 
-        // 2. Fetch conversation to get recipientId (the page or IG account ID)
+        if (!pageId) {
+            throw new HttpsError('not-found', `Page/Account ID missing in integration ${normalizedPlatform}.`);
+        }
+
+        // 2. Fetch conversation
         const conversationRef = admin.firestore().collection("conversations").doc(conversationId);
-        const conversationDoc = await conversationRef.get();
-        let targetPageId = conversationDoc.exists ? conversationDoc.data()?.recipientId : null;
-
-        let pageAccessToken = accessToken;
-
-        const accountsUrl = `https://graph.facebook.com/v21.0/me/accounts?fields=access_token,id,name,instagram_business_account&access_token=${accessToken}`;
-        const accountsResponse = await axios.get(accountsUrl);
-        const pages = accountsResponse.data.data;
-
-        if (!pages || pages.length === 0) {
-             throw new HttpsError('failed-precondition', 'No connected Meta Pages found.');
-        }
-
-        let foundPage = null;
-
-        if (normalizedPlatform === 'facebook') {
-            if (targetPageId) {
-                foundPage = pages.find((p: any) => p.id === targetPageId);
-            }
-            if (!foundPage) {
-                foundPage = pages[0]; // fallback to first page
-            }
-            pageAccessToken = foundPage.access_token;
-        } else if (normalizedPlatform === 'instagram') {
-            if (targetPageId) {
-                foundPage = pages.find((p: any) => p.instagram_business_account?.id === targetPageId);
-            }
-            if (!foundPage) {
-                // Fallback: Find the first page with an IG account
-                foundPage = pages.find((p: any) => p.instagram_business_account?.id);
-            }
-
-            if (!foundPage || !foundPage.instagram_business_account) {
-                throw new HttpsError('failed-precondition', 'No connected Instagram Business Account found.');
-            }
-            pageAccessToken = foundPage.access_token;
-        }
 
         // Call Meta Graph API to send message
-        let url = "";
-        if (normalizedPlatform === "instagram") {
-            // For IG, explicitly use the Instagram Account ID
-            const igAccountId = foundPage.instagram_business_account_id || foundPage.instagram_business_account?.id || targetPageId;
-            url = `https://graph.facebook.com/v25.0/${igAccountId}/messages?access_token=${pageAccessToken}`;
-        } else {
-            // For Facebook, 'me' properly resolves to the Page ID.
-            url = `https://graph.facebook.com/v25.0/me/messages?access_token=${pageAccessToken}`;
-        }
+        const url = `https://graph.facebook.com/v25.0/${pageId}/messages?access_token=${accessToken}`;
 
         const payload = {
             recipient: { id: participantId },
