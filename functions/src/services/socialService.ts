@@ -361,7 +361,8 @@ export const replyToMetaMessage = onCall({ region: "asia-southeast2", cors: true
 
         const payload = {
             recipient: { id: participantId },
-            message: { text: text }
+            message: { text: text },
+            messaging_type: "RESPONSE"
         };
 
         const response = await axios.post(url, payload, {
