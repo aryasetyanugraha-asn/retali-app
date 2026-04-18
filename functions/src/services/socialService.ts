@@ -293,6 +293,21 @@ export const replyToMetaMessage = onCall({ region: "asia-southeast2", cors: true
     const normalizedPlatform = platform.toLowerCase();
 
     try {
+        // 2. Fetch conversation
+        const conversationRef = admin.firestore().collection("conversations").doc(conversationId);
+        const conversationDoc = await conversationRef.get();
+
+        if (!conversationDoc.exists) {
+            throw new HttpsError('not-found', `Conversation not found.`);
+        }
+
+        const conversationData = conversationDoc.data();
+        const recipientId = conversationData?.recipientId;
+
+        if (!recipientId) {
+             throw new HttpsError('not-found', `recipientId missing in conversation document.`);
+        }
+
         // Fetch user's token for this platform
         const integrationRef = admin.firestore().doc(`users/${contextAuth.uid}/integrations/${normalizedPlatform}`);
         const integrationDoc = await integrationRef.get();
@@ -303,21 +318,13 @@ export const replyToMetaMessage = onCall({ region: "asia-southeast2", cors: true
 
         const tokenData = integrationDoc.data();
         const accessToken = tokenData?.accessToken;
-        const pageId = tokenData?.id;
 
         if (!accessToken) {
              throw new HttpsError('not-found', `Access token missing in integration ${normalizedPlatform}.`);
         }
 
-        if (!pageId) {
-            throw new HttpsError('not-found', `Page/Account ID missing in integration ${normalizedPlatform}.`);
-        }
-
-        // 2. Fetch conversation
-        const conversationRef = admin.firestore().collection("conversations").doc(conversationId);
-
         // Call Meta Graph API to send message
-        const url = `https://graph.facebook.com/v25.0/${pageId}/messages?access_token=${accessToken}`;
+        const url = `https://graph.facebook.com/v25.0/${recipientId}/messages?access_token=${accessToken}`;
 
         const payload = {
             recipient: { id: participantId },
