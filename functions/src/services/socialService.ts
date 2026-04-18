@@ -349,14 +349,24 @@ export const replyToMetaMessage = onCall({ region: "asia-southeast2", cors: true
         }
 
         // Call Meta Graph API to send message
-        const url = `https://graph.facebook.com/v25.0/me/messages?access_token=${pageAccessToken}`;
+        let url = "";
+        if (normalizedPlatform === "instagram") {
+            // For IG, explicitly use the Instagram Account ID
+            const igAccountId = foundPage.instagram_business_account_id || foundPage.instagram_business_account?.id || targetPageId;
+            url = `https://graph.facebook.com/v25.0/${igAccountId}/messages?access_token=${pageAccessToken}`;
+        } else {
+            // For Facebook, 'me' properly resolves to the Page ID.
+            url = `https://graph.facebook.com/v25.0/me/messages?access_token=${pageAccessToken}`;
+        }
 
         const payload = {
             recipient: { id: participantId },
             message: { text: text }
         };
 
-        const response = await axios.post(url, payload);
+        const response = await axios.post(url, payload, {
+            headers: { 'Content-Type': 'application/json' }
+        });
 
         const messageId = response.data.message_id || `sent_${Date.now()}`;
         const timestamp = admin.firestore.Timestamp.now();
