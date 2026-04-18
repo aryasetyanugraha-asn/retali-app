@@ -324,7 +324,12 @@ export const replyToMetaMessage = onCall({ region: "asia-southeast2", cors: true
         }
 
         // Call Meta Graph API to send message
-        const url = `https://graph.facebook.com/v25.0/${recipientId}/messages?access_token=${accessToken}`;
+        let url = "";
+        if (normalizedPlatform === "facebook") {
+            url = `https://graph.facebook.com/v25.0/me/messages?access_token=${accessToken}`;
+        } else if (normalizedPlatform === "instagram") {
+            url = `https://graph.facebook.com/v25.0/${recipientId}/messages?access_token=${accessToken}`;
+        }
 
         const payload = {
             recipient: { id: participantId },
