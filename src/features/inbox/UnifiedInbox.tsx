@@ -8,7 +8,8 @@ import {
   MessageCircle,
   Facebook,
   Instagram,
-  ArrowLeft
+  ArrowLeft,
+  Sparkles
 } from 'lucide-react';
 import { dbService, functionsService } from '../../services/firebaseService';
 
@@ -46,6 +47,7 @@ export const UnifiedInbox: React.FC = () => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeMessages, setActiveMessages] = useState<Message[]>([]);
   const [isSending, setIsSending] = useState(false);
+  const [isGeneratingAiReply, setIsGeneratingAiReply] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Subscribe to conversations
@@ -164,6 +166,29 @@ export const UnifiedInbox: React.FC = () => {
 
   const handleQuickReply = (text: string) => {
     setInputText(text);
+  };
+
+  const handleGenerateAiReply = async () => {
+    if (activeMessages.length === 0) return;
+
+    setIsGeneratingAiReply(true);
+    try {
+      // Get the last 10 messages for context
+      const chatHistory = activeMessages.slice(-10).map(msg => ({
+        sender: msg.sender === 'me' ? 'CS Travel' : 'Calon Jamaah',
+        text: msg.text
+      }));
+
+      const response: any = await functionsService.generateAiReply(chatHistory);
+      if (response && response.data) {
+        setInputText(response.data);
+      }
+    } catch (error) {
+      console.error("Failed to generate AI reply:", error);
+      alert("Failed to generate AI reply. Please try again.");
+    } finally {
+      setIsGeneratingAiReply(false);
+    }
   };
 
   const formatTime = (timestamp: any) => {
@@ -309,6 +334,18 @@ export const UnifiedInbox: React.FC = () => {
               </div>
 
               <div className="flex items-center gap-2">
+                <button
+                  onClick={handleGenerateAiReply}
+                  disabled={isGeneratingAiReply || activeMessages.length === 0}
+                  className="p-2 text-indigo-500 hover:text-indigo-700 rounded-full hover:bg-indigo-50 hidden md:flex items-center justify-center transition-colors disabled:opacity-50"
+                  title="Generate AI Reply"
+                >
+                  {isGeneratingAiReply ? (
+                    <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                  ) : (
+                    <Sparkles className="w-5 h-5" />
+                  )}
+                </button>
                 <button className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 hidden md:block">
                   <Paperclip className="w-5 h-5" />
                 </button>
