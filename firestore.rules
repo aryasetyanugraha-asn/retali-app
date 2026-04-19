@@ -147,7 +147,15 @@ service cloud.firestore {
       }
     }
 
-    // 6. Default Block
+    // 6. Market Insights
+    match /market_insights/{insightId} {
+      // Allow read access for any signed-in user
+      allow read: if isSignedIn();
+      // Only backend can write (admin SDK bypasses these rules)
+      allow write: if false;
+    }
+
+    // 7. Default Block
     match /{document=**} {
       allow read, write: if false;
     }
