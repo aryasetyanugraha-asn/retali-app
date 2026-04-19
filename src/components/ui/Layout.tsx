@@ -9,7 +9,8 @@ import {
   User,
   LogOut,
   Calendar,
-  Briefcase
+  Briefcase,
+  Search
 } from 'lucide-react';
 import { useRole, UserRole } from '../../context/RoleContext';
 import { useAuth } from '../../context/AuthContext';
@@ -59,6 +60,7 @@ export const Layout: React.FC = () => {
           <NavItem to="/inbox" icon={MessageSquare} label="Unified Inbox" />
           <NavItem to="/content" icon={PenTool} label="Content AI" />
           <NavItem to="/schedule" icon={Calendar} label="Jadwal Posting" />
+          <NavItem to="/insights" icon={Search} label="Market Insights" />
           <NavItem to="/settings" icon={Settings} label="Settings" />
         </nav>
 
@@ -113,6 +115,7 @@ export const Layout: React.FC = () => {
               {location.pathname === '/schedule' && 'Jadwal Posting'}
               {location.pathname === '/settings' && 'Settings & Integrations'}
               {location.pathname === '/mitra' && 'Data Mitra'}
+              {location.pathname === '/insights' && 'Market Insights'}
             </h2>
           </div>
 

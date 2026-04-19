@@ -121,5 +121,11 @@ export const functionsService = {
     const replyToMetaMessageFn = httpsCallable(functions, 'replyToMetaMessage');
     const result = await replyToMetaMessageFn({ conversationId, participantId, platform, text });
     return result.data;
+  },
+
+  manualDataCrawl: async () => {
+    const manualDataCrawlFn = httpsCallable(functions, 'manualDataCrawl');
+    const result = await manualDataCrawlFn();
+    return result.data;
   }
 };

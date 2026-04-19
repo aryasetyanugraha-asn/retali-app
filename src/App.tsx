@@ -7,6 +7,7 @@ import { ContentGenerator } from './features/content/ContentGenerator';
 import { SchedulePage } from './features/schedule/SchedulePage';
 import { SettingsPage } from './features/settings/SettingsPage';
 import { MitraList } from './features/mitra/MitraList';
+import { MarketInsights } from './features/insights/MarketInsights';
 import { RoleProvider } from './context/RoleContext';
 import { AuthProvider } from './context/AuthContext';
 import { LoginPage } from './features/auth/LoginPage';
@@ -35,6 +36,7 @@ function App() {
               <Route path="schedule" element={<SchedulePage />} />
               <Route path="settings" element={<SettingsPage />} />
               <Route path="mitra" element={<MitraList />} />
+              <Route path="insights" element={<MarketInsights />} />
             </Route>
           </Routes>
         </BrowserRouter>
