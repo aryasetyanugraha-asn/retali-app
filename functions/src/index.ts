@@ -18,6 +18,7 @@ import { whatsappWebhook as whatsappWebhookService } from "./triggers/whatsapp";
 import { metaSocialWebhook as metaSocialWebhookService } from "./triggers/metaSocialWebhook";
 
 import { scheduledDataCrawler as scheduledDataCrawlerService } from "./triggers/crawlerCron";
+import { manualDataCrawl as manualDataCrawlService } from "./triggers/crawlerManual";
 
 // Export Functions
 
@@ -59,3 +60,4 @@ export const helloWorld = functions.https.onRequest((request, response) => {
 
 // Data Crawler
 export const scheduledDataCrawler = scheduledDataCrawlerService;
+export const manualDataCrawl = manualDataCrawlService;
