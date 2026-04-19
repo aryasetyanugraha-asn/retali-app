@@ -40,7 +40,7 @@ export async function crawlWebsites(db: admin.firestore.Firestore): Promise<void
 
       const articles: MarketInsight[] = [];
 
-      $(site.articleSelector).each((i, element) => {
+      $(site.articleSelector).each((i: number, element: any) => {
         // Just take the first 5 articles to start
         if (i >= 5) return;
 
