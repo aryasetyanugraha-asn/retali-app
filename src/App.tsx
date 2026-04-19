@@ -5,6 +5,7 @@ import { LeadsList } from './features/leads/LeadsList';
 import { UnifiedInbox } from './features/inbox/UnifiedInbox';
 import { ContentGenerator } from './features/content/ContentGenerator';
 import { SchedulePage } from './features/schedule/SchedulePage';
+import { VirtualLive } from './features/virtuallive/VirtualLive';
 import { SettingsPage } from './features/settings/SettingsPage';
 import { MitraList } from './features/mitra/MitraList';
 import { MarketInsights } from './features/insights/MarketInsights';
@@ -34,6 +35,7 @@ function App() {
               <Route path="inbox" element={<UnifiedInbox />} />
               <Route path="content" element={<ContentGenerator />} />
               <Route path="schedule" element={<SchedulePage />} />
+              <Route path="virtuallive" element={<VirtualLive />} />
               <Route path="settings" element={<SettingsPage />} />
               <Route path="mitra" element={<MitraList />} />
               <Route path="insights" element={<MarketInsights />} />
