@@ -5,7 +5,10 @@ import * as logger from "firebase-functions/logger";
 const KEYWORDS = ["harga", "berapa", "jadwal", "dp", "ktp", "cicilan", "biaya"];
 
 export const autoScoreLeadOnMessage = onDocumentCreated(
-  "conversations/{conversationId}/messages/{messageId}",
+  {
+    document: "conversations/{conversationId}/messages/{messageId}",
+    region: "asia-southeast2",
+  },
   async (event) => {
     const snapshot = event.data;
     if (!snapshot) return;
@@ -40,10 +43,13 @@ export const autoScoreLeadOnMessage = onDocumentCreated(
         // The lead might be matched by phone or by social id (participantId)
         let leadsQuery;
 
-        if (conversationData.platform === "WHATSAPP" && conversationData.phoneNumber) {
+        if (conversationData.participantId) {
+            leadsQuery = db.collection("leads").where("platform_sender_id", "==", conversationData.participantId).limit(1);
+        } else if (conversationData.platform === "WHATSAPP" && conversationData.phoneNumber) {
+            // Fallback for older leads that might only have phone
             leadsQuery = db.collection("leads").where("phone", "==", conversationData.phoneNumber).limit(1);
         } else if (conversationData.participantId) {
-            // For Meta platforms
+            // Fallback for older leads that might only have socialId
             leadsQuery = db.collection("leads").where("socialId", "==", conversationData.participantId).limit(1);
         }
 

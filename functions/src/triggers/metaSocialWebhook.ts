@@ -133,6 +133,24 @@ export const metaSocialWebhook = onRequest({
                    avatarUrl = conversationDoc.data()?.avatarUrl || avatarUrl;
                 }
 
+                // Check and create lead automatically if not found
+                const db = admin.firestore();
+                const leadsQuery = db.collection("leads").where("platform_sender_id", "==", senderId).limit(1);
+                const leadsSnapshot = await leadsQuery.get();
+
+                if (leadsSnapshot.empty) {
+                   const newLead = {
+                     name: senderName,
+                     status: "NEW",
+                     platform_sender_id: senderId,
+                     socialId: senderId,
+                     source: platform,
+                     createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                   };
+                   await db.collection("leads").add(newLead);
+                   logger.info(`Automatically created new lead from ${platform} for platform_sender_id ${senderId}`);
+                }
+
                 await messagesRef.doc(messageId).set({
                   id: messageId,
                   sender: "them",
