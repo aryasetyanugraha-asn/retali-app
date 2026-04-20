@@ -65,6 +65,24 @@ export const whatsappWebhook = onRequest({
                   const conversationRef = admin.firestore().collection("conversations").doc(conversationId);
                   const messagesRef = conversationRef.collection("messages");
 
+                  // Check and create lead automatically if not found
+                  const db = admin.firestore();
+                  const leadsQuery = db.collection("leads").where("platform_sender_id", "==", fromNumber).limit(1);
+                  const leadsSnapshot = await leadsQuery.get();
+
+                  if (leadsSnapshot.empty) {
+                     const newLead = {
+                       name: senderName,
+                       status: "NEW",
+                       platform_sender_id: fromNumber,
+                       phone: fromNumber,
+                       source: "WHATSAPP",
+                       createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                     };
+                     await db.collection("leads").add(newLead);
+                     logger.info(`Automatically created new lead from WHATSAPP for platform_sender_id ${fromNumber}`);
+                  }
+
                   // Save the message
                   await messagesRef.doc(messageId).set({
                     id: messageId,
