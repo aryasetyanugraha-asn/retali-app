@@ -22,6 +22,23 @@ interface Lead {
   status: LeadStatus;
   lastContact: string;
   notes: string;
+  package_schedule?: string;
+  payment_status?: 'BELUM DP' | 'DP' | 'LUNAS';
+  documents?: {
+    ktp: boolean;
+    paspor: boolean;
+    kk: boolean;
+    buku_kuning: boolean;
+  };
+  equipment_taken?: boolean;
+  identity?: {
+    nik: string;
+    passport_no: string;
+    passport_expiry: string;
+  };
+  mahram?: string;
+  apparel_size?: string;
+  medical_notes?: string;
 }
 
 const STATUSES: LeadStatus[] = ['NEW', 'COLD', 'WARM', 'HOT'];
