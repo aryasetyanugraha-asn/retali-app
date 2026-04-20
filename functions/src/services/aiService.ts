@@ -69,6 +69,51 @@ async function applyBranding(imageUrl: string): Promise<string> {
   }
 }
 
+export const generateAiReply = onCall({
+  cors: true,
+  region: "asia-southeast2",
+  timeoutSeconds: 60,
+  memory: "512MiB"
+}, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError(
+      "unauthenticated",
+      "User must be logged in to generate a reply."
+    );
+  }
+
+  const { chatHistory } = request.data;
+
+  if (!chatHistory || !Array.isArray(chatHistory)) {
+    throw new HttpsError(
+      "invalid-argument",
+      "chatHistory array is required."
+    );
+  }
+
+  try {
+    const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
+
+    const systemPrompt = "Anda adalah seorang Customer Service Senior di sebuah Travel Umrah dan Haji yang profesional. Tugas Anda adalah membalas pesan calon jamaah. Baca riwayat chat ini dan buatkan SATU draf balasan yang sopan, empatik, persuasif, dan mengarahkan jamaah untuk segera melakukan DP (Down Payment) atau konsultasi lebih lanjut. Jangan gunakan bahasa yang kaku seperti robot. Gunakan emoji secukupnya.";
+
+    const historyText = chatHistory.map((msg: any) => `${msg.sender}: ${msg.text}`).join("\n");
+    const prompt = `${systemPrompt}\n\nRiwayat Chat:\n${historyText}\n\nBalasan:`;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+
+    return {
+      success: true,
+      data: text,
+      timestamp: new Date().toISOString()
+    };
+  } catch (error) {
+    logger.error("Error generating AI reply:", error);
+    throw new HttpsError("internal", "Failed to generate AI reply.");
+  }
+});
+
 export const generateAIContent = onCall({
   cors: true,
   region: "asia-southeast2",

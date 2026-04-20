@@ -127,5 +127,11 @@ export const functionsService = {
     const manualDataCrawlFn = httpsCallable(functions, 'manualDataCrawl');
     const result = await manualDataCrawlFn();
     return result.data;
+  },
+
+  generateAiReply: async (chatHistory: any[]) => {
+    const generateAiReplyFn = httpsCallable(functions, 'generateAiReply');
+    const result = await generateAiReplyFn({ chatHistory });
+    return result.data;
   }
 };

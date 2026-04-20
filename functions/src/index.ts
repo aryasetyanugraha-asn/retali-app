@@ -4,7 +4,7 @@ import * as admin from "firebase-admin";
 admin.initializeApp();
 
 // Import Services
-import { generateAIContent } from "./services/aiService";
+import { generateAIContent, generateAiReply as generateAiReplyService } from "./services/aiService";
 import { postToSocial as postToSocialService, replyToMetaMessage as replyToMetaMessageService } from "./services/socialService";
 import { exchangeTikTokToken as exchangeTikTokTokenService, exchangeMetaToken as exchangeMetaTokenService } from "./services/integrationService";
 import { setCustomUserClaims as setCustomUserClaimsService } from "./services/userService";
@@ -16,6 +16,7 @@ import { processScheduledPosts as processScheduledPostsService } from "./trigger
 import { catchLeadWebhook as catchLeadWebhookService } from "./triggers/webhooks";
 import { whatsappWebhook as whatsappWebhookService } from "./triggers/whatsapp";
 import { metaSocialWebhook as metaSocialWebhookService } from "./triggers/metaSocialWebhook";
+import { autoScoreLeadOnMessage as autoScoreLeadOnMessageService } from "./triggers/messageTriggers";
 
 import { scheduledDataCrawler as scheduledDataCrawlerService } from "./triggers/crawlerCron";
 import { manualDataCrawl as manualDataCrawlService } from "./triggers/crawlerManual";
@@ -27,6 +28,7 @@ export const setCustomUserClaims = setCustomUserClaimsService;
 
 // AI Service (v2)
 export const generateContent = generateAIContent;
+export const generateAiReply = generateAiReplyService;
 
 // Social Media Service (v1)
 export const postToSocial = functions.https.onCall(postToSocialService);
@@ -45,6 +47,7 @@ export const exchangeMetaToken = exchangeMetaTokenService;
 export const catchLeadWebhook = catchLeadWebhookService;
 export const whatsappWebhook = whatsappWebhookService;
 export const metaSocialWebhook = metaSocialWebhookService;
+export const autoScoreLeadOnMessage = autoScoreLeadOnMessageService;
 
 // Auth Triggers
 export const onUserCreated = onCreateUser;
