@@ -6,16 +6,11 @@ import {
   Filter,
   MoreVertical,
   Phone,
-  Mail,
-  Facebook,
-  Instagram,
-  MessageCircle,
-  Video,
   X
 } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 
-type LeadStatus = 'NEW' | 'COLD' | 'WARM' | 'HOT';
+type LeadStatus = 'NEW' | 'COLD' | 'WARM' | 'HOT' | 'WON';
 type Platform = 'WHATSAPP' | 'FACEBOOK' | 'INSTAGRAM' | 'TIKTOK' | 'WEB';
 
 interface Lead {
@@ -31,15 +26,19 @@ interface Lead {
 
 const STATUSES: LeadStatus[] = ['NEW', 'COLD', 'WARM', 'HOT'];
 
-const PlatformIcon = ({ platform }: { platform: Platform }) => {
+
+const PlatformBadge = ({ platform }: { platform: Platform }) => {
   switch (platform) {
-    case 'WHATSAPP': return <MessageCircle className="w-4 h-4 text-green-600" />;
-    case 'FACEBOOK': return <Facebook className="w-4 h-4 text-blue-600" />;
-    case 'INSTAGRAM': return <Instagram className="w-4 h-4 text-pink-600" />;
-    case 'TIKTOK': return <Video className="w-4 h-4 text-black" />; // Lucide doesn't have TikTok, using Video
-    default: return <Mail className="w-4 h-4 text-gray-600" />;
+    case 'WHATSAPP': return <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-[10px] font-medium border border-green-200">WA</span>;
+    case 'FACEBOOK': return <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-[10px] font-medium border border-blue-200">FB</span>;
+    case 'INSTAGRAM': return <span className="bg-pink-100 text-pink-700 px-2 py-0.5 rounded text-[10px] font-medium border border-pink-200">IG</span>;
+    case 'TIKTOK': return <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded text-[10px] font-medium border border-gray-200">TK</span>;
+    default: return <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded text-[10px] font-medium border border-gray-200">WEB</span>;
   }
 };
+
+
+
 
 export const LeadsList: React.FC = () => {
   const { profile } = useUserProfile();
@@ -48,6 +47,14 @@ export const LeadsList: React.FC = () => {
   const [filter, setFilter] = useState<LeadStatus | 'ALL'>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [sourceFilter, setSourceFilter] = useState<Platform | 'ALL'>('ALL');
+  const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
+
+  // Modals for edit & delete
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingLead, setEditingLead] = useState<Lead | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [leadToDelete, setLeadToDelete] = useState<string | null>(null);
   const [newLead, setNewLead] = useState({
     name: '',
     phone: '',
@@ -78,11 +85,28 @@ export const LeadsList: React.FC = () => {
   }, []);
 
   const filteredLeads = leads.filter(lead => {
+    // EXCLUDE 'WON' leads from the Kanban board
+    if (lead.status === 'WON') return false;
+
     const matchesStatus = filter === 'ALL' || lead.status === filter;
     const matchesSearch = lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           lead.phone.includes(searchTerm);
-    return matchesStatus && matchesSearch;
+    const matchesSource = sourceFilter === 'ALL' || lead.platform === sourceFilter;
+
+    return matchesStatus && matchesSearch && matchesSource;
   });
+
+  // Calculate Stats
+  const now = new Date();
+  const oneDay = 24 * 60 * 60 * 1000;
+  const sevenDays = 7 * oneDay;
+
+  const leadsToday = leads.filter(l => l.lastContact !== 'N/A' && (now.getTime() - new Date(l.lastContact).getTime()) <= oneDay).length;
+  const leadsThisWeek = leads.filter(l => l.lastContact !== 'N/A' && (now.getTime() - new Date(l.lastContact).getTime()) <= sevenDays).length;
+  const wonLeadsCount = leads.filter(l => l.status === 'WON').length;
+  const totalLeadsCount = leads.length;
+  const conversionRate = totalLeadsCount > 0 ? Math.round((wonLeadsCount / totalLeadsCount) * 100) : 0;
+
 
   const getLeadsByStatus = (status: LeadStatus) => {
     return filteredLeads.filter(lead => lead.status === status);
@@ -151,7 +175,57 @@ export const LeadsList: React.FC = () => {
     }
   };
 
+
+  const handleDeleteLead = async () => {
+    if (!leadToDelete) return;
+    try {
+      await dbService.deleteDocument('leads', leadToDelete);
+      setIsDeleteModalOpen(false);
+      setLeadToDelete(null);
+    } catch (error) {
+      console.error('Error deleting lead:', error);
+    }
+  };
+
+  const handleMarkAsWon = async (id: string) => {
+    try {
+      await dbService.updateDocument('leads', id, { status: 'WON' });
+      setActiveMenuId(null);
+    } catch (error) {
+      console.error('Error marking as won:', error);
+    }
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingLead) return;
+
+    try {
+      await dbService.updateDocument('leads', editingLead.id, {
+        name: editingLead.name,
+        phone: editingLead.phone,
+        notes: editingLead.notes
+      });
+      setIsEditModalOpen(false);
+      setEditingLead(null);
+    } catch (error) {
+      console.error('Error updating lead:', error);
+    }
+  };
+
+  // Click outside to close menu
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (activeMenuId && !(event.target as Element).closest('.menu-container')) {
+        setActiveMenuId(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [activeMenuId]);
+
   if (loading) {
+
     return (
       <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -161,6 +235,22 @@ export const LeadsList: React.FC = () => {
 
   return (
     <div className="space-y-6 h-[calc(100vh-8rem)] flex flex-col">
+      {/* Stats Header */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-shrink-0 mb-2">
+        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+          <p className="text-sm text-gray-500 font-medium">Leads Today</p>
+          <p className="text-2xl font-bold text-gray-900 mt-1">{leadsToday}</p>
+        </div>
+        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+          <p className="text-sm text-gray-500 font-medium">Leads This Week</p>
+          <p className="text-2xl font-bold text-gray-900 mt-1">{leadsThisWeek}</p>
+        </div>
+        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+          <p className="text-sm text-gray-500 font-medium">Conversion Rate</p>
+          <p className="text-2xl font-bold text-gray-900 mt-1">{conversionRate}%</p>
+        </div>
+      </div>
+
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 flex-shrink-0">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Leads Management</h1>
@@ -186,6 +276,21 @@ export const LeadsList: React.FC = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
+        </div>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Filter className="w-4 h-4 text-gray-500" />
+          <select
+            className="border border-gray-200 rounded-lg text-sm p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={sourceFilter}
+            onChange={(e) => setSourceFilter(e.target.value as any)}
+          >
+            <option value="ALL">All Sources</option>
+            <option value="WHATSAPP">WhatsApp</option>
+            <option value="FACEBOOK">Facebook</option>
+            <option value="INSTAGRAM">Instagram</option>
+            <option value="TIKTOK">TikTok</option>
+            <option value="WEB">Web</option>
+          </select>
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <Filter className="w-4 h-4 text-gray-500" />
@@ -248,17 +353,42 @@ export const LeadsList: React.FC = () => {
                                   </div>
                                   <div>
                                     <h4 className="text-sm font-semibold text-gray-900">{lead.name}</h4>
-                                    <div className="flex items-center gap-1 mt-0.5">
-                                      <div className="p-1 rounded-full bg-gray-50">
-                                        <PlatformIcon platform={lead.platform} />
-                                      </div>
-                                      <span className="text-xs text-gray-500 truncate max-w-[120px]">{lead.notes || 'No notes'}</span>
+                                    <div className="flex items-center gap-1 mt-1">
+                                      <PlatformBadge platform={lead.platform} />
+                                      <span className="text-xs text-gray-500 truncate max-w-[120px] ml-1">{lead.notes || 'No notes'}</span>
                                     </div>
                                   </div>
                                 </div>
-                                <button className="text-gray-400 hover:text-gray-600 p-1 rounded-md hover:bg-gray-100 transition-colors">
-                                  <MoreVertical className="w-4 h-4" />
-                                </button>
+                                <div className="relative menu-container">
+                                  <button
+                                    onClick={() => setActiveMenuId(activeMenuId === lead.id ? null : lead.id)}
+                                    className="text-gray-400 hover:text-gray-600 p-1 rounded-md hover:bg-gray-100 transition-colors"
+                                  >
+                                    <MoreVertical className="w-4 h-4" />
+                                  </button>
+                                  {activeMenuId === lead.id && (
+                                    <div className="absolute right-0 mt-1 w-36 bg-white rounded-md shadow-lg border border-gray-200 z-50 py-1">
+                                      <button
+                                        onClick={() => { setEditingLead(lead); setIsEditModalOpen(true); setActiveMenuId(null); }}
+                                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                      >
+                                        Edit Details
+                                      </button>
+                                      <button
+                                        onClick={() => handleMarkAsWon(lead.id)}
+                                        className="w-full text-left px-4 py-2 text-sm text-green-600 hover:bg-green-50"
+                                      >
+                                        Mark as Won
+                                      </button>
+                                      <button
+                                        onClick={() => { setLeadToDelete(lead.id); setIsDeleteModalOpen(true); setActiveMenuId(null); }}
+                                        className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                                      >
+                                        Delete Lead
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
 
                               <div className="mt-4 flex items-center justify-between text-xs text-gray-500">
@@ -378,6 +508,92 @@ export const LeadsList: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Lead Modal */}
+      {isEditModalOpen && editingLead && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+            <div className="flex justify-between items-center p-6 border-b border-gray-100">
+              <h2 className="text-xl font-semibold text-gray-900">Edit Lead</h2>
+              <button
+                onClick={() => { setIsEditModalOpen(false); setEditingLead(null); }}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleEditSubmit} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                <input
+                  type="text"
+                  required
+                  value={editingLead.name}
+                  onChange={(e) => setEditingLead({ ...editingLead, name: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                <input
+                  type="tel"
+                  required
+                  value={editingLead.phone}
+                  onChange={(e) => setEditingLead({ ...editingLead, phone: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                <textarea
+                  value={editingLead.notes}
+                  onChange={(e) => setEditingLead({ ...editingLead, notes: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none h-24"
+                ></textarea>
+              </div>
+              <div className="pt-4 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => { setIsEditModalOpen(false); setEditingLead(null); }}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg transition-colors border border-gray-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {isDeleteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden p-6 text-center">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Delete Lead?</h3>
+            <p className="text-sm text-gray-500 mb-6">Are you sure you want to delete this lead? This action cannot be undone.</p>
+            <div className="flex justify-center gap-3">
+              <button
+                onClick={() => { setIsDeleteModalOpen(false); setLeadToDelete(null); }}
+                className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg transition-colors border border-gray-200 w-full"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteLead}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors w-full"
+              >
+                Delete
+              </button>
+            </div>
           </div>
         </div>
       )}

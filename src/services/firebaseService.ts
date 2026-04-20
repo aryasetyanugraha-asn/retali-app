@@ -115,23 +115,5 @@ export const functionsService = {
     const sendWhatsAppMessageFn = httpsCallable(functions, 'sendWhatsAppMessage');
     const result = await sendWhatsAppMessageFn({ phoneNumber, text, conversationId });
     return result.data;
-  },
-
-  replyToMetaMessage: async (conversationId: string, participantId: string, platform: string, text: string) => {
-    const replyToMetaMessageFn = httpsCallable(functions, 'replyToMetaMessage');
-    const result = await replyToMetaMessageFn({ conversationId, participantId, platform, text });
-    return result.data;
-  },
-
-  manualDataCrawl: async () => {
-    const manualDataCrawlFn = httpsCallable(functions, 'manualDataCrawl');
-    const result = await manualDataCrawlFn();
-    return result.data;
-  },
-
-  generateAiReply: async (chatHistory: any[]) => {
-    const generateAiReplyFn = httpsCallable(functions, 'generateAiReply');
-    const result = await generateAiReplyFn({ chatHistory });
-    return result.data;
   }
 };

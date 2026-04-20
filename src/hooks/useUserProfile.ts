@@ -1,64 +1,47 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { doc, onSnapshot } from 'firebase/firestore';
 
-export interface BankDetails {
-  bankName: string;
-  accountNumber: string;
-  accountName: string;
-}
-
-export interface SocialMedia {
-  instagram?: string;
-  facebook?: string;
-  tiktok?: string;
-}
-
-export interface UserProfile {
+interface UserProfile {
   uid: string;
-  email: string;
-  displayName?: string;
-  photoURL?: string;
-  role: 'PUSAT' | 'CABANG' | 'MITRA';
-  phoneNumber?: string;
-  bankDetails?: BankDetails;
-  socialMedia?: SocialMedia;
-  feeAchievement?: number;
-  createdAt?: any;
+  role: string;
   branchId?: string;
   partnerId?: string;
 }
 
-export const useUserProfile = () => {
+export function useUserProfile() {
   const { user } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    if (!user) {
-      setProfile(null);
-      setLoading(false);
-      return;
+    async function fetchProfile() {
+      if (!user) {
+        setProfile(null);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const docRef = doc(db, 'users', user.uid);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+          setProfile({ uid: user.uid, ...docSnap.data() } as UserProfile);
+        } else {
+          setProfile(null);
+        }
+      } catch (err) {
+        setError(err as Error);
+      } finally {
+        setLoading(false);
+      }
     }
 
-    const unsub = onSnapshot(doc(db, 'users', user.uid), (docSnap) => {
-      if (docSnap.exists()) {
-        setProfile({ uid: docSnap.id, ...docSnap.data() } as UserProfile);
-      } else {
-        // Handle case where auth exists but firestore doc doesn't (rare/race condition)
-        setProfile(null);
-      }
-      setLoading(false);
-    }, (err) => {
-      console.error("Error fetching user profile:", err);
-      setError(err.message);
-      setLoading(false);
-    });
-
-    return () => unsub();
+    fetchProfile();
   }, [user]);
 
   return { profile, loading, error };
-};
+}
