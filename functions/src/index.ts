@@ -20,6 +20,7 @@ import { autoScoreLeadOnMessage as autoScoreLeadOnMessageService } from "./trigg
 
 import { scheduledDataCrawler as scheduledDataCrawlerService } from "./triggers/crawlerCron";
 import { manualDataCrawl as manualDataCrawlService } from "./triggers/crawlerManual";
+import { processLeadDecay as processLeadDecayService } from "./triggers/leadDecay";
 
 // Export Functions
 
@@ -54,6 +55,9 @@ export const onUserCreated = onCreateUser;
 
 // Scheduled Posts
 export const processScheduledPosts = processScheduledPostsService;
+
+// Scheduled Lead Decay
+export const processLeadDecay = processLeadDecayService;
 
 // Example HTTP Trigger
 export const helloWorld = functions.https.onRequest((request, response) => {

@@ -11,7 +11,8 @@ import {
   Calendar,
   Briefcase,
   Search,
-  Video
+  Video,
+  Award
 } from 'lucide-react';
 import { useRole, UserRole } from '../../context/RoleContext';
 import { useAuth } from '../../context/AuthContext';
@@ -55,6 +56,7 @@ export const Layout: React.FC = () => {
         <nav className="mt-6 space-y-1 flex-1 overflow-y-auto">
           <NavItem to="/dashboard" icon={LayoutDashboard} label="Dashboard" />
           <NavItem to="/leads" icon={Users} label="Leads CRM" />
+          <NavItem to="/jamaah-aktif" icon={Award} label="Jamaah Aktif" />
           {(role === 'PUSAT' || role === 'CABANG') && (
             <NavItem to="/mitra" icon={Briefcase} label="Data Mitra" />
           )}
@@ -112,6 +114,7 @@ export const Layout: React.FC = () => {
             <h2 className="text-lg font-semibold text-gray-800 line-clamp-1">
               {location.pathname === '/dashboard' && 'Dashboard Overview'}
               {location.pathname === '/leads' && 'Leads Management'}
+              {location.pathname === '/jamaah-aktif' && 'Jamaah Aktif'}
               {location.pathname === '/inbox' && 'Pesan Masuk'}
               {location.pathname === '/content' && 'Content Generator'}
               {location.pathname === '/schedule' && 'Jadwal Posting'}

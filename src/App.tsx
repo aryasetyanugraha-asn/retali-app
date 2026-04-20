@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Layout } from './components/ui/Layout';
 import { Dashboard } from './features/dashboard/Dashboard';
 import { LeadsList } from './features/leads/LeadsList';
+import { JamaahAktif } from './features/leads/JamaahAktif';
 import { UnifiedInbox } from './features/inbox/UnifiedInbox';
 import { ContentGenerator } from './features/content/ContentGenerator';
 import { SchedulePage } from './features/schedule/SchedulePage';
@@ -32,6 +33,7 @@ function App() {
               <Route index element={<Navigate to="/dashboard" replace />} />
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="leads" element={<LeadsList />} />
+              <Route path="jamaah-aktif" element={<JamaahAktif />} />
               <Route path="inbox" element={<UnifiedInbox />} />
               <Route path="content" element={<ContentGenerator />} />
               <Route path="schedule" element={<SchedulePage />} />
