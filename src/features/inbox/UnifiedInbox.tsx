@@ -48,7 +48,19 @@ export const UnifiedInbox: React.FC = () => {
   const [activeMessages, setActiveMessages] = useState<Message[]>([]);
   const [isSending, setIsSending] = useState(false);
   const [isGeneratingAiReply, setIsGeneratingAiReply] = useState(false);
+  const [aiDraft, setAiDraft] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-expand textarea
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      const scrollHeight = textareaRef.current.scrollHeight;
+      // Max height ~5 lines (around 120px depending on line height)
+      textareaRef.current.style.height = Math.min(scrollHeight, 120) + 'px';
+    }
+  }, [inputText]);
 
   // Subscribe to conversations
   useEffect(() => {
@@ -181,7 +193,7 @@ export const UnifiedInbox: React.FC = () => {
 
       const response: any = await functionsService.generateAiReply(chatHistory);
       if (response && response.data) {
-        setInputText(response.data);
+        setAiDraft(response.data);
       }
     } catch (error) {
       console.error("Failed to generate AI reply:", error);
@@ -320,6 +332,37 @@ export const UnifiedInbox: React.FC = () => {
 
             {/* Input Area */}
             <div className="p-4 bg-white border-t border-gray-200">
+              {/* AI Draft Preview Card */}
+              {aiDraft && (
+                <div className="mb-4 p-4 bg-indigo-50 border border-indigo-100 rounded-xl relative">
+                  <div className="flex items-center mb-2 text-indigo-700">
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    <span className="text-sm font-semibold">AI Draft Preview</span>
+                  </div>
+                  <p className="text-sm text-gray-800 whitespace-pre-wrap mb-3">{aiDraft}</p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        setInputText(aiDraft);
+                        setAiDraft(null);
+                        if (textareaRef.current) {
+                          textareaRef.current.focus();
+                        }
+                      }}
+                      className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded-lg transition-colors"
+                    >
+                      Use this reply
+                    </button>
+                    <button
+                      onClick={() => setAiDraft(null)}
+                      className="px-3 py-1.5 bg-white hover:bg-gray-100 text-gray-700 text-xs font-medium border border-gray-200 rounded-lg transition-colors"
+                    >
+                      Discard
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Quick Replies */}
               <div className="flex gap-2 mb-4 overflow-x-auto pb-2 scrollbar-hide">
                 {QUICK_REPLIES.map((reply, i) => (
@@ -350,15 +393,22 @@ export const UnifiedInbox: React.FC = () => {
                   <Paperclip className="w-5 h-5" />
                 </button>
                 <div className="flex-1 relative">
-                  <input
-                    type="text"
+                  <textarea
+                    ref={textareaRef}
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSend();
+                      }
+                    }}
                     placeholder="Tulis pesan..."
-                    className="w-full pl-4 pr-10 py-3 border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                    rows={1}
+                    className="w-full pl-4 pr-10 py-3 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent resize-none overflow-y-auto"
+                    style={{ minHeight: '48px' }}
                   />
-                  <button className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 hidden md:block">
+                  <button className="absolute right-3 bottom-3 text-gray-400 hover:text-gray-600 hidden md:block">
                     <Smile className="w-5 h-5" />
                   </button>
                 </div>
