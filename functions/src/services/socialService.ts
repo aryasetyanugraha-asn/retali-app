@@ -75,28 +75,20 @@ async function postToInstagramAPI(token: string, message: string, imageUrl?: str
   }
 
   try {
-    // 1. Get Facebook Page associated with the User Token and find Instagram Business Account ID
-    const accountsUrl = `https://graph.facebook.com/v21.0/me/accounts?fields=instagram_business_account&access_token=${token}`;
-    const accountsResponse = await axios.get(accountsUrl);
+    // 1. Token is already a Page Access Token, so we just get the instagram_business_account ID directly from /me
+    const meUrl = `https://graph.facebook.com/v24.0/me?fields=instagram_business_account&access_token=${token}`;
+    const meResponse = await axios.get(meUrl);
 
-    let igUserId = null;
-    const pages = accountsResponse.data.data;
-
-    for (const page of pages) {
-      if (page.instagram_business_account && page.instagram_business_account.id) {
-        igUserId = page.instagram_business_account.id;
-        break; // Use the first connected IG account we find
-      }
-    }
+    let igUserId = meResponse.data.instagram_business_account?.id;
 
     if (!igUserId) {
-      throw new Error("No connected Instagram Business Account found for this user.");
+      throw new Error("No connected Instagram Business Account found for this page token.");
     }
 
     logger.info(`Found Instagram User ID: ${igUserId}`);
 
     // 2. Create Media Container
-    const mediaContainerUrl = `https://graph.facebook.com/v21.0/${igUserId}/media`;
+    const mediaContainerUrl = `https://graph.facebook.com/v24.0/${igUserId}/media`;
     const mediaContainerResponse = await axios.post(mediaContainerUrl, null, {
       params: {
         image_url: imageUrl,
@@ -113,7 +105,7 @@ async function postToInstagramAPI(token: string, message: string, imageUrl?: str
     logger.info(`Created media container: ${containerId}`);
 
     // 3. Publish Media Container
-    const mediaPublishUrl = `https://graph.facebook.com/v21.0/${igUserId}/media_publish`;
+    const mediaPublishUrl = `https://graph.facebook.com/v24.0/${igUserId}/media_publish`;
     const mediaPublishResponse = await axios.post(mediaPublishUrl, null, {
       params: {
         creation_id: containerId,
@@ -142,34 +134,29 @@ async function postToFacebookGraphAPI(token: string, message: string, imageUrl?:
   logger.info("Facebook Graph API call", { tokenPrefix: token.substring(0, 10), message, imageUrl });
 
   try {
-    // 1. Get Facebook Pages associated with the user token
-    const accountsUrl = `https://graph.facebook.com/v21.0/me/accounts?access_token=${token}`;
-    const accountsResponse = await axios.get(accountsUrl);
+    // 1. Token is already a Page Access Token, so we just get the page ID from /me
+    const meUrl = `https://graph.facebook.com/v24.0/me?access_token=${token}`;
+    const meResponse = await axios.get(meUrl);
 
-    const pages = accountsResponse.data.data;
-    if (!pages || pages.length === 0) {
-      throw new Error("No connected Facebook Pages found for this user.");
+    const pageId = meResponse.data.id;
+    if (!pageId) {
+      throw new Error("Could not determine Page ID from token.");
     }
-
-    // Use the first page found
-    const page = pages[0];
-    const pageId = page.id;
-    const pageAccessToken = page.access_token;
 
     logger.info(`Found Facebook Page ID: ${pageId}`);
 
     // 2. Publish to Facebook Page
     let publishUrl;
     let params: any = {
-        access_token: pageAccessToken,
+        access_token: token,
     };
 
     if (imageUrl) {
-        publishUrl = `https://graph.facebook.com/v21.0/${pageId}/photos`;
+        publishUrl = `https://graph.facebook.com/v24.0/${pageId}/photos`;
         params.url = imageUrl;
         params.message = message;
     } else {
-        publishUrl = `https://graph.facebook.com/v21.0/${pageId}/feed`;
+        publishUrl = `https://graph.facebook.com/v24.0/${pageId}/feed`;
         params.message = message;
     }
 
@@ -324,12 +311,8 @@ export const replyToMetaMessage = onCall({ region: "asia-southeast2", cors: true
         }
 
         // Call Meta Graph API to send message
-        let url = "";
-        if (normalizedPlatform === "facebook") {
-            url = `https://graph.facebook.com/v25.0/me/messages?access_token=${accessToken}`;
-        } else if (normalizedPlatform === "instagram") {
-            url = `https://graph.facebook.com/v25.0/${recipientId}/messages?access_token=${accessToken}`;
-        }
+        // Since the token is a Page Access Token, we just use /me/messages for both FB and IG
+        const url = `https://graph.facebook.com/v24.0/me/messages?access_token=${accessToken}`;
 
         const payload = {
             recipient: { id: participantId },
