@@ -1,3 +1,13 @@
+/**
+ * CRUCIAL CONTEXT - Meta API Integration
+ * The Meta Access Token stored in Firestore (integrations > facebook > accessToken or integrations > instagram > accessToken)
+ * is ALREADY a permanent Page Access Token, NOT a User Token.
+ *
+ * 1. Do not attempt to call `/me/accounts` to fetch page tokens from the user token. Use the stored token directly.
+ * 2. Instagram Publishing Flow: Call `GET /v24.0/me?fields=instagram_business_account&access_token={THE_STORED_TOKEN}` directly to get the IG Business ID.
+ * 3. Inbox Replies: Use the stored token directly to hit `POST /v24.0/me/messages` for both FB and IG replies.
+ */
+
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import * as admin from "firebase-admin";
 import * as logger from "firebase-functions/logger";
