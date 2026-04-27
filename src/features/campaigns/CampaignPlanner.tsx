@@ -10,9 +10,18 @@ interface MonthBreakdown {
   key_goal: string;
 }
 
+interface BudgetPlan {
+  recommended_monthly_ad_spend: number;
+  estimated_leads_min: number;
+  estimated_leads_max: number;
+  cpl_estimation: number;
+  budget_allocation: Record<string, number>;
+}
+
 interface CampaignOption {
   theme: string;
   monthly_breakdown: MonthBreakdown[];
+  budget_plan?: BudgetPlan;
 }
 
 interface PostIdea {
@@ -35,6 +44,9 @@ export const CampaignPlanner: React.FC = () => {
   const [monthPosts, setMonthPosts] = useState<Record<string, PostIdea[]>>({});
   const [loadingMonths, setLoadingMonths] = useState<Record<string, boolean>>({});
   const [schedulingMonths, setSchedulingMonths] = useState<Record<string, boolean>>({});
+
+  // Track custom budget per option (A, B, C)
+  const [customBudgets, setCustomBudgets] = useState<Record<string, number>>({});
 
   const handleGenerateOptions = async () => {
     if (!title || !targetAudience || !startDate) {
@@ -63,16 +75,35 @@ export const CampaignPlanner: React.FC = () => {
   };
 
   const handleSelectOption = async (optionKey: 'A' | 'B' | 'C') => {
-    if (!user) return;
+    if (!user || !options) return;
     setSelectedOption(optionKey);
 
     try {
+      const optionDataKey = `option_${optionKey.toLowerCase()}` as keyof typeof options;
+      const selectedOptionData = options[optionDataKey];
+
+      let finalBudgetPlan = selectedOptionData.budget_plan;
+
+      // Override the recommended spend with custom budget if adjusted, and recalculate min/max leads
+      if (finalBudgetPlan && customBudgets[optionKey] !== undefined) {
+         const newBudget = customBudgets[optionKey];
+         const baseLeads = newBudget / finalBudgetPlan.cpl_estimation;
+
+         finalBudgetPlan = {
+            ...finalBudgetPlan,
+            recommended_monthly_ad_spend: newBudget,
+            estimated_leads_min: Math.floor(baseLeads * 0.8),
+            estimated_leads_max: Math.ceil(baseLeads * 1.2)
+         };
+      }
+
       const payload = {
         title,
         target_audience: targetAudience,
         start_date: Timestamp.fromDate(new Date(startDate)),
         selected_option: optionKey,
         options,
+        budget_plan: finalBudgetPlan || null,
         status: "DRAFT"
       };
 
@@ -147,6 +178,22 @@ export const CampaignPlanner: React.FC = () => {
     if (!option) return null;
 
     const isSelected = selectedOption === key;
+    const currentBudget = customBudgets[key] !== undefined ? customBudgets[key] : (option.budget_plan?.recommended_monthly_ad_spend || 0);
+
+    // Calculate dynamic leads based on current budget and CPL estimation
+    let dynamicMinLeads = 0;
+    let dynamicMaxLeads = 0;
+
+    if (option.budget_plan && option.budget_plan.cpl_estimation > 0) {
+       const baseLeads = currentBudget / option.budget_plan.cpl_estimation;
+       // Creating a variance (e.g. +/- 20%) to keep it as a range
+       dynamicMinLeads = Math.floor(baseLeads * 0.8);
+       dynamicMaxLeads = Math.ceil(baseLeads * 1.2);
+    }
+
+    const formatCurrency = (value: number) => {
+      return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(value);
+    };
 
     return (
       <div className={`bg-white rounded-xl shadow-sm border-2 transition-all p-6 ${isSelected ? 'border-emerald-500 ring-4 ring-emerald-50' : 'border-gray-200 hover:border-emerald-300 cursor-pointer'}`}
@@ -155,6 +202,49 @@ export const CampaignPlanner: React.FC = () => {
           <h3 className="text-xl font-bold text-gray-800">Opsi {key}: {option.theme}</h3>
           {isSelected && <div className="bg-emerald-100 text-emerald-600 p-1.5 rounded-full"><Check className="w-5 h-5" /></div>}
         </div>
+
+        {option.budget_plan && (
+          <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-6">
+             <h4 className="font-semibold text-blue-900 mb-2">Financial Summary</h4>
+
+             <div className="mb-3">
+               <label className="block text-xs font-medium text-blue-800 mb-1">Estimated Monthly Budget (Adjustable)</label>
+               <input
+                 type="number"
+                 value={currentBudget}
+                 onClick={(e) => e.stopPropagation()}
+                 onChange={(e) => {
+                   e.stopPropagation();
+                   setCustomBudgets(prev => ({ ...prev, [key]: Number(e.target.value) }));
+                 }}
+                 className="w-full border border-blue-200 rounded p-1.5 text-sm"
+               />
+               <div className="text-xs text-blue-600 mt-1">Formatted: {formatCurrency(currentBudget)}</div>
+             </div>
+
+             <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+               <div className="bg-white p-2 rounded border border-blue-100">
+                 <div className="text-gray-500 text-xs">Projected Leads</div>
+                 <div className="font-semibold text-gray-800">{dynamicMinLeads} - {dynamicMaxLeads}</div>
+               </div>
+               <div className="bg-white p-2 rounded border border-blue-100">
+                 <div className="text-gray-500 text-xs">Est. CPL</div>
+                 <div className="font-semibold text-gray-800">{formatCurrency(option.budget_plan.cpl_estimation)}</div>
+               </div>
+             </div>
+
+             <div>
+               <div className="text-xs font-medium text-blue-800 mb-1">Budget Allocation</div>
+               <div className="flex flex-wrap gap-1">
+                 {Object.entries(option.budget_plan.budget_allocation || {}).map(([allocKey, perc]) => (
+                    <span key={allocKey} className="text-[10px] bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full border border-blue-200">
+                      {allocKey}: {perc}%
+                    </span>
+                 ))}
+               </div>
+             </div>
+          </div>
+        )}
 
         <div className="space-y-4 mt-6">
           {option.monthly_breakdown.map((mb, idx) => (

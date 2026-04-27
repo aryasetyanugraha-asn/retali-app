@@ -147,6 +147,12 @@ export const generateCampaignOptions = onCall({
          - Option B: Emotional/Spiritual (Rindu Baitullah, Keutamaan Ibadah, Kisah Inspiratif)
          - Option C: Hard-Selling (Promo, Diskon, Seat Terbatas, Flash Sale)
       3. For EACH option, provide a "theme" and a "monthly_breakdown" containing 6 elements (one for each month). Each month should have a "month_name" (Gregorian & Hijri context), "monthly_theme", and "key_goal".
+      4. For EACH option, also provide a "budget_plan" which contains:
+         - "recommended_monthly_ad_spend": A realistic number in IDR for Indonesian market (e.g., 5000000).
+         - "estimated_leads_min": The minimum expected leads.
+         - "estimated_leads_max": The maximum expected leads.
+         - "cpl_estimation": Cost Per Lead estimation in IDR.
+         - "budget_allocation": An object breaking down the allocation by percentage, where the sum is 100 (e.g., { "Cold Traffic": 60, "Retargeting": 30, "Content Production": 10 }).
 
       Output EXACTLY in the following JSON structure without any markdown formatting, backticks, or extra text:
       {
@@ -154,15 +160,36 @@ export const generateCampaignOptions = onCall({
           "theme": "Trust/Authority",
           "monthly_breakdown": [
             { "month_name": "Month 1", "monthly_theme": "Theme", "key_goal": "Goal" }
-          ]
+          ],
+          "budget_plan": {
+            "recommended_monthly_ad_spend": 5000000,
+            "estimated_leads_min": 100,
+            "estimated_leads_max": 250,
+            "cpl_estimation": 25000,
+            "budget_allocation": { "Cold Traffic": 60, "Retargeting": 30, "Content Production": 10 }
+          }
         },
         "option_b": {
           "theme": "Emotional/Spiritual",
-          "monthly_breakdown": []
+          "monthly_breakdown": [],
+          "budget_plan": {
+            "recommended_monthly_ad_spend": 5000000,
+            "estimated_leads_min": 100,
+            "estimated_leads_max": 250,
+            "cpl_estimation": 25000,
+            "budget_allocation": { "Cold Traffic": 60, "Retargeting": 30, "Content Production": 10 }
+          }
         },
         "option_c": {
           "theme": "Hard-Selling",
-          "monthly_breakdown": []
+          "monthly_breakdown": [],
+          "budget_plan": {
+            "recommended_monthly_ad_spend": 5000000,
+            "estimated_leads_min": 100,
+            "estimated_leads_max": 250,
+            "cpl_estimation": 25000,
+            "budget_allocation": { "Cold Traffic": 60, "Retargeting": 30, "Content Production": 10 }
+          }
         }
       }
     `;
