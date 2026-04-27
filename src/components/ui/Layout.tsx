@@ -12,7 +12,8 @@ import {
   Briefcase,
   Search,
   Video,
-  Award
+  Award,
+  Megaphone
 } from 'lucide-react';
 import { useRole, UserRole } from '../../context/RoleContext';
 import { useAuth } from '../../context/AuthContext';
@@ -62,6 +63,7 @@ export const Layout: React.FC = () => {
           )}
           <NavItem to="/inbox" icon={MessageSquare} label="Unified Inbox" />
           <NavItem to="/content" icon={PenTool} label="Content AI" />
+          <NavItem to="/campaigns" icon={Megaphone} label="Campaign Planner" />
           <NavItem to="/schedule" icon={Calendar} label="Jadwal Posting" />
           <NavItem to="/virtuallive" icon={Video} label="Virtual Live" />
           <NavItem to="/insights" icon={Search} label="Market Insights" />
@@ -117,6 +119,7 @@ export const Layout: React.FC = () => {
               {location.pathname === '/jamaah-aktif' && 'Jamaah Aktif'}
               {location.pathname === '/inbox' && 'Pesan Masuk'}
               {location.pathname === '/content' && 'Content Generator'}
+              {location.pathname === '/campaigns' && 'Campaign Planner'}
               {location.pathname === '/schedule' && 'Jadwal Posting'}
               {location.pathname === '/virtuallive' && 'Virtual Live Studio'}
               {location.pathname === '/settings' && 'Settings & Integrations'}

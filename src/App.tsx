@@ -10,6 +10,7 @@ import { VirtualLive } from './features/virtuallive/VirtualLive';
 import { SettingsPage } from './features/settings/SettingsPage';
 import { MitraList } from './features/mitra/MitraList';
 import { MarketInsights } from './features/insights/MarketInsights';
+import { CampaignPlanner } from './features/campaigns/CampaignPlanner';
 import { RoleProvider } from './context/RoleContext';
 import { AuthProvider } from './context/AuthContext';
 import { LoginPage } from './features/auth/LoginPage';
@@ -36,6 +37,7 @@ function App() {
               <Route path="jamaah-aktif" element={<JamaahAktif />} />
               <Route path="inbox" element={<UnifiedInbox />} />
               <Route path="content" element={<ContentGenerator />} />
+              <Route path="campaigns" element={<CampaignPlanner />} />
               <Route path="schedule" element={<SchedulePage />} />
               <Route path="virtuallive" element={<VirtualLive />} />
               <Route path="settings" element={<SettingsPage />} />
