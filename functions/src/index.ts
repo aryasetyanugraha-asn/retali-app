@@ -30,6 +30,9 @@ export const setCustomUserClaims = setCustomUserClaimsService;
 // AI Service (v2)
 export const generateContent = generateAIContent;
 export const generateAiReply = generateAiReplyService;
+import { generateCampaignOptions as generateCampaignOptionsService, generateMonthBreakdown as generateMonthBreakdownService } from "./services/aiService";
+export const generateCampaignOptions = generateCampaignOptionsService;
+export const generateMonthBreakdown = generateMonthBreakdownService;
 
 // Social Media Service (v1)
 export const postToSocial = functions.https.onCall(postToSocialService);

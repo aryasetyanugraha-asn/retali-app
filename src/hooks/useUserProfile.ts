@@ -3,11 +3,24 @@ import { useAuth } from '../context/AuthContext';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
-interface UserProfile {
+export interface UserProfile {
   uid: string;
   role: string;
   branchId?: string;
   partnerId?: string;
+  phoneNumber?: string;
+  bankDetails?: {
+    bankName?: string;
+    accountNumber?: string;
+    accountHolder?: string;
+    accountName?: string;
+  };
+  feeAchievement?: number;
+  socialMedia?: {
+    instagram?: string;
+    facebook?: string;
+    tiktok?: string;
+  };
 }
 
 export function useUserProfile() {

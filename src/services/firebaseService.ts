@@ -115,5 +115,35 @@ export const functionsService = {
     const sendWhatsAppMessageFn = httpsCallable(functions, 'sendWhatsAppMessage');
     const result = await sendWhatsAppMessageFn({ phoneNumber, text, conversationId });
     return result.data;
+  },
+
+  generateCampaignOptions: async (title: string, target_audience: string, start_date: string) => {
+    const generateCampaignOptionsFn = httpsCallable(functions, 'generateCampaignOptions');
+    const result = await generateCampaignOptionsFn({ title, target_audience, start_date });
+    return result.data;
+  },
+
+  generateMonthBreakdown: async (campaign_title: string, option_theme: string, month_name: string, monthly_theme: string, key_goal: string) => {
+    const generateMonthBreakdownFn = httpsCallable(functions, 'generateMonthBreakdown');
+    const result = await generateMonthBreakdownFn({ campaign_title, option_theme, month_name, monthly_theme, key_goal });
+    return result.data;
+  },
+
+  replyToMetaMessage: async (participantId: string, text: string, platform: string, conversationId: string) => {
+    const replyFn = httpsCallable(functions, 'replyToMetaMessage');
+    const result = await replyFn({ participantId, text, platform, conversationId });
+    return result.data;
+  },
+
+  generateAiReply: async (chatHistory: any[]) => {
+    const aiReplyFn = httpsCallable(functions, 'generateAiReply');
+    const result = await aiReplyFn({ chatHistory });
+    return result.data;
+  },
+
+  manualDataCrawl: async () => {
+    const crawlFn = httpsCallable(functions, 'manualDataCrawl');
+    const result = await crawlFn();
+    return result.data;
   }
 };

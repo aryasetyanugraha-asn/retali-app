@@ -114,6 +114,133 @@ export const generateAiReply = onCall({
   }
 });
 
+export const generateCampaignOptions = onCall({
+  cors: true,
+  region: "asia-southeast2",
+  timeoutSeconds: 120,
+  memory: "1GiB"
+}, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "User must be logged in to generate campaigns.");
+  }
+
+  const { title, target_audience, start_date } = request.data;
+  if (!title || !target_audience || !start_date) {
+    throw new HttpsError("invalid-argument", "Missing required fields: title, target_audience, start_date.");
+  }
+
+  try {
+    const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
+    const prompt = `
+      Act as a Digital Marketing Director for an Umrah & Hajj Travel Agency in Indonesia.
+      You are tasked with generating a 6-month marketing roadmap.
+
+      Inputs:
+      - Campaign Title: ${title}
+      - Target Audience: ${target_audience}
+      - Start Date: ${start_date}
+
+      Requirements:
+      1. Map the next 6 months (starting from the Start Date) to the Hijri Calendar and note any important Islamic events (e.g., Ramadhan, Dzulhijjah, Maulid Nabi).
+      2. Provide 3 distinct strategy options:
+         - Option A: Trust/Authority (Edukasi, Testimoni, Fiqih Umrah)
+         - Option B: Emotional/Spiritual (Rindu Baitullah, Keutamaan Ibadah, Kisah Inspiratif)
+         - Option C: Hard-Selling (Promo, Diskon, Seat Terbatas, Flash Sale)
+      3. For EACH option, provide a "theme" and a "monthly_breakdown" containing 6 elements (one for each month). Each month should have a "month_name" (Gregorian & Hijri context), "monthly_theme", and "key_goal".
+
+      Output EXACTLY in the following JSON structure without any markdown formatting, backticks, or extra text:
+      {
+        "option_a": {
+          "theme": "Trust/Authority",
+          "monthly_breakdown": [
+            { "month_name": "Month 1", "monthly_theme": "Theme", "key_goal": "Goal" }
+          ]
+        },
+        "option_b": {
+          "theme": "Emotional/Spiritual",
+          "monthly_breakdown": []
+        },
+        "option_c": {
+          "theme": "Hard-Selling",
+          "monthly_breakdown": []
+        }
+      }
+    `;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    let text = response.text();
+    text = text.replace(/\`\`\`json/g, "").replace(/\`\`\`/g, "").trim();
+
+    return {
+      success: true,
+      data: JSON.parse(text),
+      timestamp: new Date().toISOString()
+    };
+  } catch (error) {
+    logger.error("Error generating campaign options:", error);
+    throw new HttpsError("internal", "Failed to generate campaign options.");
+  }
+});
+
+export const generateMonthBreakdown = onCall({
+  cors: true,
+  region: "asia-southeast2",
+  timeoutSeconds: 120,
+  memory: "1GiB"
+}, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "User must be logged in.");
+  }
+
+  const { campaign_title, option_theme, month_name, monthly_theme, key_goal } = request.data;
+  if (!campaign_title || !option_theme || !month_name) {
+    throw new HttpsError("invalid-argument", "Missing required fields.");
+  }
+
+  try {
+    const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
+    const prompt = `
+      Act as a Social Media Specialist for an Umrah & Hajj Travel Agency.
+      I need 12 specific post ideas for a particular month based on the following strategy:
+
+      Campaign: ${campaign_title}
+      Strategy Theme: ${option_theme}
+      Month: ${month_name}
+      Monthly Theme: ${monthly_theme}
+      Key Goal: ${key_goal}
+
+      Requirements:
+      Generate exactly 12 posts. Spread them roughly as Mon-Wed-Fri for 4 weeks.
+      For each post, provide:
+      1. A short, persuasive caption in Bahasa Indonesia (with emojis and hashtags).
+      2. A brief prompt/description for the visual image.
+
+      Output EXACTLY in the following JSON structure without any markdown formatting, backticks, or extra text:
+      [
+        {
+          "caption": "Post caption here...",
+          "image_prompt": "Visual description here..."
+        }
+      ]
+    `;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    let text = response.text();
+    text = text.replace(/\`\`\`json/g, "").replace(/\`\`\`/g, "").trim();
+
+    return {
+      success: true,
+      data: JSON.parse(text),
+      timestamp: new Date().toISOString()
+    };
+  } catch (error) {
+    logger.error("Error generating month breakdown:", error);
+    throw new HttpsError("internal", "Failed to generate month breakdown.");
+  }
+});
+
 export const generateAIContent = onCall({
   cors: true,
   region: "asia-southeast2",
