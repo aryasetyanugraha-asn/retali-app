@@ -13,8 +13,37 @@ import {
   Plus,
   X,
   Upload,
-  Trash2
+  Trash2,
+  AlertTriangle
 } from 'lucide-react';
+
+class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('PostingCalendar rendering error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="bg-red-50 p-6 rounded-xl border border-red-200 text-center">
+          <AlertTriangle className="w-10 h-10 text-red-500 mx-auto mb-3" />
+          <h3 className="text-lg font-semibold text-red-800">Something went wrong</h3>
+          <p className="text-sm text-red-600 mt-2">Failed to load the posting calendar. Please try refreshing the page.</p>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 interface ScheduledPost {
   id: string;
@@ -157,6 +186,7 @@ export const PostingCalendar: React.FC = () => {
   if (!user) return null;
 
   return (
+    <ErrorBoundary>
     <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-lg font-bold text-gray-900">Jadwal Posting</h2>
@@ -198,11 +228,17 @@ export const PostingCalendar: React.FC = () => {
                   </div>
                 )}
                 <div className="absolute top-2 left-2 flex gap-1">
-                    {post.platforms.map(p => (
+                    {((post.platforms as string[] | undefined) || []).map(p => (
                         <div key={p} className="bg-white/90 backdrop-blur-sm p-1 rounded-md shadow-sm">
                           {getPlatformIcon(p)}
                         </div>
                     ))}
+                    {/* Fallback for older posts that might have just `platform` string */}
+                    {!(post.platforms && post.platforms.length > 0) && (post as any).platform && (
+                        <div key={(post as any).platform} className="bg-white/90 backdrop-blur-sm p-1 rounded-md shadow-sm">
+                          {getPlatformIcon((post as any).platform)}
+                        </div>
+                    )}
                 </div>
               </div>
 
@@ -351,5 +387,6 @@ export const PostingCalendar: React.FC = () => {
         </div>
       )}
     </div>
+    </ErrorBoundary>
   );
 };

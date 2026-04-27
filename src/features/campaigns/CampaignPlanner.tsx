@@ -155,8 +155,9 @@ export const CampaignPlanner: React.FC = () => {
 
         await dbService.addDocument('scheduledPosts', {
           userId: user.uid,
-          platform: 'instagram', // default, can be enhanced
+          platforms: ['INSTAGRAM'], // Fixed payload to match PostingCalendar
           content: post.caption,
+          imageUrl: '',
           image_prompt: post.image_prompt, // storing prompt for now
           status: 'PENDING',
           scheduledAt: Timestamp.fromDate(scheduledDate),
