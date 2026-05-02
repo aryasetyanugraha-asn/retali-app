@@ -73,11 +73,31 @@ async function postToInstagramAPI(userId: string, message: string, imageUrl?: st
   }
 
   try {
-    // 1. Token is already a Page Access Token, so we just get the instagram_business_account ID directly from /me
-    const meUrl = `https://graph.facebook.com/v24.0/me?fields=instagram_business_account&access_token=${token}`;
-    const meResponse = await axios.get(meUrl);
+    // 1. Fetch connected pages to get Page Token
+    const accountsUrl = `https://graph.facebook.com/v24.0/me/accounts?access_token=${token}`;
+    const accountsResponse = await axios.get(accountsUrl);
 
-    let igUserId = meResponse.data.instagram_business_account?.id;
+    const pages = accountsResponse.data.data;
+    if (!pages || pages.length === 0) {
+      throw new Error("No connected Facebook Pages found for this user.");
+    }
+
+    // Use the first connected page for now
+    const page = pages[0];
+    const pageToken = page.access_token;
+    const pageId = page.id;
+
+    if (!pageToken || !pageId) {
+        throw new Error("Could not determine Page Access Token or Page ID.");
+    }
+
+    logger.info(`Found Facebook Page ID: ${pageId} for Instagram posting`);
+
+    // 2. Get the Instagram Business Account ID using the Page Token and Page ID
+    const igAccountUrl = `https://graph.facebook.com/v24.0/${pageId}?fields=instagram_business_account&access_token=${pageToken}`;
+    const igAccountResponse = await axios.get(igAccountUrl);
+
+    let igUserId = igAccountResponse.data.instagram_business_account?.id;
 
     if (!igUserId) {
       throw new Error("No connected Instagram Business Account found for this page token.");
@@ -85,13 +105,13 @@ async function postToInstagramAPI(userId: string, message: string, imageUrl?: st
 
     logger.info(`Found Instagram User ID: ${igUserId}`);
 
-    // 2. Create Media Container
+    // 3. Create Media Container
     const mediaContainerUrl = `https://graph.facebook.com/v24.0/${igUserId}/media`;
     const mediaContainerResponse = await axios.post(mediaContainerUrl, null, {
       params: {
         image_url: imageUrl,
         caption: message,
-        access_token: token,
+        access_token: pageToken,
       }
     });
 
@@ -102,12 +122,12 @@ async function postToInstagramAPI(userId: string, message: string, imageUrl?: st
 
     logger.info(`Created media container: ${containerId}`);
 
-    // 3. Publish Media Container
+    // 4. Publish Media Container
     const mediaPublishUrl = `https://graph.facebook.com/v24.0/${igUserId}/media_publish`;
     const mediaPublishResponse = await axios.post(mediaPublishUrl, null, {
       params: {
         creation_id: containerId,
-        access_token: token,
+        access_token: pageToken,
       }
     });
 
@@ -138,13 +158,22 @@ async function postToFacebookGraphAPI(userId: string, message: string, imageUrl?
   logger.info("Facebook Graph API call", { tokenPrefix: token.substring(0, 10), message, imageUrl });
 
   try {
-    // 1. Token is already a Page Access Token, so we just get the page ID from /me
-    const meUrl = `https://graph.facebook.com/v24.0/me?access_token=${token}`;
-    const meResponse = await axios.get(meUrl);
+    // 1. Fetch connected pages to get Page Token
+    const accountsUrl = `https://graph.facebook.com/v24.0/me/accounts?access_token=${token}`;
+    const accountsResponse = await axios.get(accountsUrl);
 
-    const pageId = meResponse.data.id;
-    if (!pageId) {
-      throw new Error("Could not determine Page ID from token.");
+    const pages = accountsResponse.data.data;
+    if (!pages || pages.length === 0) {
+      throw new Error("No connected Facebook Pages found for this user.");
+    }
+
+    // Use the first connected page for now
+    const page = pages[0];
+    const pageToken = page.access_token;
+    const pageId = page.id;
+
+    if (!pageToken || !pageId) {
+        throw new Error("Could not determine Page Access Token or Page ID.");
     }
 
     logger.info(`Found Facebook Page ID: ${pageId}`);
@@ -152,7 +181,7 @@ async function postToFacebookGraphAPI(userId: string, message: string, imageUrl?
     // 2. Publish to Facebook Page
     let publishUrl;
     let params: any = {
-        access_token: token,
+        access_token: pageToken,
     };
 
     if (imageUrl) {
