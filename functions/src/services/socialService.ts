@@ -1,4 +1,3 @@
-import * as functions from "firebase-functions/v1";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import * as admin from "firebase-admin";
@@ -10,57 +9,60 @@ interface PostRequest {
     platform: 'INSTAGRAM' | 'FACEBOOK' | 'TIKTOK';
 }
 
-export const postToSocial = async (data: PostRequest, context: functions.https.CallableContext) => {
+export const postToSocial = onCall({ region: "asia-southeast2", cors: true }, async (request) => {
+    const { data, auth: contextAuth } = request;
+    const postData = data as PostRequest;
+
     // 1. Auth Check
-    if (!context.auth) {
-         throw new functions.https.HttpsError('unauthenticated', 'User must be logged in.');
+    if (!contextAuth) {
+         throw new HttpsError('unauthenticated', 'User must be logged in.');
     }
 
     try {
-        const platform = data.platform.toLowerCase();
+        const platform = postData.platform.toLowerCase();
 
         // Fetch user's token for this platform
-        const integrationRef = admin.firestore().doc(`users/${context.auth.uid}/integrations/${platform}`);
+        const integrationRef = admin.firestore().doc(`users/${contextAuth.uid}/integrations/${platform}`);
         const integrationDoc = await integrationRef.get();
 
         if (!integrationDoc.exists) {
-            throw new functions.https.HttpsError('not-found', `Integration ${platform} not found.`);
+            throw new HttpsError('not-found', `Integration ${platform} not found.`);
         }
 
         const tokenData = integrationDoc.data();
         const accessToken = tokenData?.accessToken;
 
         if (!accessToken) {
-             throw new functions.https.HttpsError('not-found', `Access token missing in integration ${platform}.`);
+             throw new HttpsError('not-found', `Access token missing in integration ${platform}.`);
         }
 
         let success = false;
 
         // Call appropriate API
         if (platform === 'instagram') {
-            success = await postToInstagramAPI(accessToken, data.content, data.imageUrl);
+            success = await postToInstagramAPI(accessToken, postData.content, postData.imageUrl);
         } else if (platform === 'facebook') {
-            success = await postToFacebookGraphAPI(accessToken, data.content, data.imageUrl);
+            success = await postToFacebookGraphAPI(accessToken, postData.content, postData.imageUrl);
         } else if (platform === 'tiktok') {
-            success = await postToTikTokAPI(accessToken, data.content, data.imageUrl);
+            success = await postToTikTokAPI(accessToken, postData.content, postData.imageUrl);
         } else {
-            throw new functions.https.HttpsError('invalid-argument', `Unknown platform ${platform}`);
+            throw new HttpsError('invalid-argument', `Unknown platform ${platform}`);
         }
 
         if (!success) {
-            throw new functions.https.HttpsError('internal', `Failed to post to ${platform}`);
+            throw new HttpsError('internal', `Failed to post to ${platform}`);
         }
 
         return {
             success: true,
-            message: `Successfully posted to ${data.platform}`
+            message: `Successfully posted to ${postData.platform}`
         };
 
     } catch (err: any) {
-        logger.error(`Error processing direct post to platform ${data.platform}:`, err);
-        throw new functions.https.HttpsError('internal', err.message || 'An error occurred while posting');
+        logger.error(`Error processing direct post to platform ${postData.platform}:`, err);
+        throw new HttpsError('internal', err.message || 'An error occurred while posting');
     }
-};
+});
 
 // --- Scheduled Posts Logic ---
 

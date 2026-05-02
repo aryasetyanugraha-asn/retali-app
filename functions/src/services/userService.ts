@@ -1,10 +1,10 @@
-import * as functions from "firebase-functions/v2";
+import { onCall, HttpsError } from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
 
-export const setCustomUserClaims = functions.https.onCall(async (request) => {
+export const setCustomUserClaims = onCall({ region: "asia-southeast2", cors: true }, async (request) => {
   // Ensure the user is authenticated
   if (!request.auth) {
-    throw new functions.https.HttpsError(
+    throw new HttpsError(
       "unauthenticated",
       "Only authenticated users can set custom claims."
     );
@@ -24,7 +24,7 @@ export const setCustomUserClaims = functions.https.onCall(async (request) => {
   }
 
   if (!isPusat) {
-    throw new functions.https.HttpsError(
+    throw new HttpsError(
       "permission-denied",
       "Only users with the PUSAT role can assign custom claims."
     );
@@ -33,14 +33,14 @@ export const setCustomUserClaims = functions.https.onCall(async (request) => {
   const { uid, role, branchId, partnerId } = request.data;
 
   if (!uid || !role) {
-    throw new functions.https.HttpsError(
+    throw new HttpsError(
       "invalid-argument",
       "The 'uid' and 'role' fields are required."
     );
   }
 
   if (!["PUSAT", "CABANG", "MITRA"].includes(role)) {
-    throw new functions.https.HttpsError(
+    throw new HttpsError(
       "invalid-argument",
       "The 'role' must be one of: PUSAT, CABANG, MITRA."
     );
@@ -75,7 +75,7 @@ export const setCustomUserClaims = functions.https.onCall(async (request) => {
     };
   } catch (error) {
     console.error("Error setting custom claims:", error);
-    throw new functions.https.HttpsError(
+    throw new HttpsError(
       "internal",
       "An error occurred while setting custom claims."
     );
