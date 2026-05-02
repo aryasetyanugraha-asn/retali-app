@@ -1,8 +1,9 @@
-import * as functions from "firebase-functions";
+import { onRequest } from "firebase-functions/v2/https";
+import * as logger from "firebase-functions/logger";
 
-export const webhookHandler = functions.https.onRequest(async (req, res) => {
+export const webhookHandler = onRequest({ region: "asia-southeast2" }, async (req, res) => {
     // Basic verification and handling
     // TODO: Implement Meta/WhatsApp webhook verification
-    functions.logger.info("Webhook received", { body: req.body, query: req.query });
+    logger.info("Webhook received", { body: req.body, query: req.query });
     res.status(200).send("Webhook received");
 });

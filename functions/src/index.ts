@@ -1,4 +1,3 @@
-import * as functions from "firebase-functions/v1";
 import * as admin from "firebase-admin";
 
 admin.initializeApp();
@@ -34,10 +33,8 @@ import { generateCampaignOptions as generateCampaignOptionsService, generateMont
 export const generateCampaignOptions = generateCampaignOptionsService;
 export const generateMonthBreakdown = generateMonthBreakdownService;
 
-// Social Media Service (v1)
-export const postToSocial = functions.https.onCall(postToSocialService);
-
 // Social Media Service (v2)
+export const postToSocial = postToSocialService;
 export const replyToMetaMessage = replyToMetaMessageService;
 
 // WhatsApp Service (v2)
@@ -62,9 +59,12 @@ export const processScheduledPosts = processScheduledPostsService;
 // Scheduled Lead Decay
 export const processLeadDecay = processLeadDecayService;
 
+import { onRequest } from "firebase-functions/v2/https";
+import * as logger from "firebase-functions/logger";
+
 // Example HTTP Trigger
-export const helloWorld = functions.https.onRequest((request, response) => {
-  functions.logger.info("Hello logs!", {structuredData: true});
+export const helloWorld = onRequest({ region: "asia-southeast2" }, (request, response) => {
+  logger.info("Hello logs!", {structuredData: true});
   response.send("Hello from Firebase Backend!");
 });
 
