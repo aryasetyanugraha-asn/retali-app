@@ -21,30 +21,15 @@ export const postToSocial = onCall({ region: "asia-southeast2", cors: true }, as
     try {
         const platform = postData.platform.toLowerCase();
 
-        // Fetch user's token for this platform
-        const integrationRef = admin.firestore().doc(`users/${contextAuth.uid}/integrations/${platform}`);
-        const integrationDoc = await integrationRef.get();
-
-        if (!integrationDoc.exists) {
-            throw new HttpsError('not-found', `Integration ${platform} not found.`);
-        }
-
-        const tokenData = integrationDoc.data();
-        const accessToken = tokenData?.accessToken;
-
-        if (!accessToken) {
-             throw new HttpsError('not-found', `Access token missing in integration ${platform}.`);
-        }
-
         let success = false;
 
         // Call appropriate API
         if (platform === 'instagram') {
-            success = await postToInstagramAPI(accessToken, postData.content, postData.imageUrl);
+            success = await postToInstagramAPI(contextAuth.uid, postData.content, postData.imageUrl);
         } else if (platform === 'facebook') {
-            success = await postToFacebookGraphAPI(accessToken, postData.content, postData.imageUrl);
+            success = await postToFacebookGraphAPI(contextAuth.uid, postData.content, postData.imageUrl);
         } else if (platform === 'tiktok') {
-            success = await postToTikTokAPI(accessToken, postData.content, postData.imageUrl);
+            success = await postToTikTokAPI(contextAuth.uid, postData.content, postData.imageUrl);
         } else {
             throw new HttpsError('invalid-argument', `Unknown platform ${platform}`);
         }
@@ -69,7 +54,18 @@ export const postToSocial = onCall({ region: "asia-southeast2", cors: true }, as
 /**
  * Function to post to Instagram via Graph API
  */
-async function postToInstagramAPI(token: string, message: string, imageUrl?: string): Promise<boolean> {
+async function getFreshToken(userId: string, platform: string): Promise<string | undefined> {
+  const doc = await admin.firestore().doc(`users/${userId}/integrations/${platform}`).get();
+  return doc.data()?.accessToken;
+}
+
+async function postToInstagramAPI(userId: string, message: string, imageUrl?: string): Promise<boolean> {
+  const token = await getFreshToken(userId, 'instagram');
+  if (!token) {
+    logger.error(`No token found for instagram for user ${userId}`);
+    return false;
+  }
+  console.log('Token used: ' + token.substring(0, 15) + '...');
   logger.info("Instagram Graph API call", { tokenPrefix: token.substring(0, 10), message, imageUrl });
 
   if (!imageUrl) {
@@ -132,7 +128,13 @@ async function postToInstagramAPI(token: string, message: string, imageUrl?: str
 /**
  * Mock function to simulate posting to Facebook via Graph API
  */
-async function postToFacebookGraphAPI(token: string, message: string, imageUrl?: string): Promise<boolean> {
+async function postToFacebookGraphAPI(userId: string, message: string, imageUrl?: string): Promise<boolean> {
+  const token = await getFreshToken(userId, 'facebook');
+  if (!token) {
+    logger.error(`No token found for facebook for user ${userId}`);
+    return false;
+  }
+  console.log('Token used: ' + token.substring(0, 15) + '...');
   logger.info("Facebook Graph API call", { tokenPrefix: token.substring(0, 10), message, imageUrl });
 
   try {
@@ -177,7 +179,13 @@ async function postToFacebookGraphAPI(token: string, message: string, imageUrl?:
 /**
  * Mock function to simulate posting to TikTok via TikTok API
  */
-async function postToTikTokAPI(token: string, message: string, videoUrl?: string): Promise<boolean> {
+async function postToTikTokAPI(userId: string, message: string, videoUrl?: string): Promise<boolean> {
+  const token = await getFreshToken(userId, 'tiktok');
+  if (!token) {
+    logger.error(`No token found for tiktok for user ${userId}`);
+    return false;
+  }
+  console.log('Token used: ' + token.substring(0, 15) + '...');
   logger.info("Mock TikTok API call", { tokenPrefix: token.substring(0, 10), message, videoUrl });
 
   // Simulated success
@@ -211,35 +219,18 @@ export async function processScheduledPost(postId: string, postData: any, db: ad
       const normalizedPlatform = platform.toLowerCase();
       logger.info(`Attempting to post to ${normalizedPlatform} (original: ${platform}) for user ${userId}`);
 
-      // Fetch user's token for this platform
-      const integrationRef = db.doc(`users/${userId}/integrations/${normalizedPlatform}`);
-      const integrationDoc = await integrationRef.get();
 
-      if (!integrationDoc.exists) {
-        logger.error(`Integration ${normalizedPlatform} not found for user ${userId}. Skipping this platform.`);
-        allSuccessful = false;
-        continue;
-      }
-
-      const tokenData = integrationDoc.data();
-      const accessToken = tokenData?.accessToken;
-
-      if (!accessToken) {
-         logger.error(`Access token missing in integration ${normalizedPlatform} for user ${userId}. Skipping this platform.`);
-         allSuccessful = false;
-         continue;
-      }
 
       let success = false;
 
       // Call appropriate API
       if (normalizedPlatform === 'instagram') {
-        success = await postToInstagramAPI(accessToken, content, imageUrl);
+        success = await postToInstagramAPI(userId, content, imageUrl);
       } else if (normalizedPlatform === 'facebook') {
-        success = await postToFacebookGraphAPI(accessToken, content, imageUrl);
+        success = await postToFacebookGraphAPI(userId, content, imageUrl);
       } else if (normalizedPlatform === 'tiktok') {
         // Assume imageUrl contains video URL for TikTok for now
-        success = await postToTikTokAPI(accessToken, content, imageUrl);
+        success = await postToTikTokAPI(userId, content, imageUrl);
       } else {
         logger.warn(`Unknown platform ${normalizedPlatform} for post ${postId}`);
         success = false;
