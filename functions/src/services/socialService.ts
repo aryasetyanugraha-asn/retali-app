@@ -73,39 +73,43 @@ async function postToInstagramAPI(userId: string, message: string, imageUrl?: st
   }
 
   try {
-    // 1. Fetch connected pages to get Page Token
-    const accountsUrl = `https://graph.facebook.com/v24.0/me/accounts?access_token=${token}`;
+    // 1. Fetch connected pages to get Page Token and IG Business Account
+    const accountsUrl = `https://graph.facebook.com/v24.0/me/accounts?fields=access_token,instagram_business_account,name,id&access_token=${token}`;
     const accountsResponse = await axios.get(accountsUrl);
+
+    logger.info("Raw accounts data fetched:", { data: accountsResponse.data });
 
     const pages = accountsResponse.data.data;
     if (!pages || pages.length === 0) {
       throw new Error("No connected Facebook Pages found for this user.");
     }
 
-    // Use the first connected page for now
-    const page = pages[0];
-    const pageToken = page.access_token;
-    const pageId = page.id;
+    // Find the page with an Instagram Business Account
+    let pageToken;
+    let pageId;
+    let igUserId;
+
+    for (const page of pages) {
+      if (page.instagram_business_account && page.instagram_business_account.id && page.access_token) {
+        pageToken = page.access_token;
+        pageId = page.id;
+        igUserId = page.instagram_business_account.id;
+        break;
+      }
+    }
 
     if (!pageToken || !pageId) {
-        throw new Error("Could not determine Page Access Token or Page ID.");
+        throw new Error("Could not determine Page Access Token or Page ID. No page with a connected Instagram Business Account was found.");
+    }
+
+    if (!igUserId) {
+      throw new Error("No connected Instagram Business Account found for this user's pages.");
     }
 
     logger.info(`Found Facebook Page ID: ${pageId} for Instagram posting`);
-
-    // 2. Get the Instagram Business Account ID using the Page Token and Page ID
-    const igAccountUrl = `https://graph.facebook.com/v24.0/${pageId}?fields=instagram_business_account&access_token=${pageToken}`;
-    const igAccountResponse = await axios.get(igAccountUrl);
-
-    let igUserId = igAccountResponse.data.instagram_business_account?.id;
-
-    if (!igUserId) {
-      throw new Error("No connected Instagram Business Account found for this page token.");
-    }
-
     logger.info(`Found Instagram User ID: ${igUserId}`);
 
-    // 3. Create Media Container
+    // 2. Create Media Container
     const mediaContainerUrl = `https://graph.facebook.com/v24.0/${igUserId}/media`;
     const mediaContainerResponse = await axios.post(mediaContainerUrl, null, {
       params: {
@@ -122,7 +126,7 @@ async function postToInstagramAPI(userId: string, message: string, imageUrl?: st
 
     logger.info(`Created media container: ${containerId}`);
 
-    // 4. Publish Media Container
+    // 3. Publish Media Container
     const mediaPublishUrl = `https://graph.facebook.com/v24.0/${igUserId}/media_publish`;
     const mediaPublishResponse = await axios.post(mediaPublishUrl, null, {
       params: {
@@ -159,21 +163,30 @@ async function postToFacebookGraphAPI(userId: string, message: string, imageUrl?
 
   try {
     // 1. Fetch connected pages to get Page Token
-    const accountsUrl = `https://graph.facebook.com/v24.0/me/accounts?access_token=${token}`;
+    const accountsUrl = `https://graph.facebook.com/v24.0/me/accounts?fields=access_token,name,id&access_token=${token}`;
     const accountsResponse = await axios.get(accountsUrl);
+
+    logger.info("Raw accounts data fetched for Facebook:", { data: accountsResponse.data });
 
     const pages = accountsResponse.data.data;
     if (!pages || pages.length === 0) {
       throw new Error("No connected Facebook Pages found for this user.");
     }
 
-    // Use the first connected page for now
-    const page = pages[0];
-    const pageToken = page.access_token;
-    const pageId = page.id;
+    // Find the first valid page with an access token
+    let pageToken;
+    let pageId;
+
+    for (const page of pages) {
+      if (page.access_token && page.id) {
+        pageToken = page.access_token;
+        pageId = page.id;
+        break;
+      }
+    }
 
     if (!pageToken || !pageId) {
-        throw new Error("Could not determine Page Access Token or Page ID.");
+        throw new Error("Could not determine Page Access Token or Page ID from connected pages.");
     }
 
     logger.info(`Found Facebook Page ID: ${pageId}`);
