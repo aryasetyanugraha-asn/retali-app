@@ -120,16 +120,36 @@ export const exchangeMetaToken = onCall({
   }
 
   try {
-    const url = `https://graph.facebook.com/v21.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${appId}&client_secret=${appSecret}&fb_exchange_token=${shortLivedToken}`;
-    const response = await axios.get(url);
+    // 1. Exchange short-lived User Token for a long-lived User Token
+    const url = `https://graph.facebook.com/v24.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${appId}&client_secret=${appSecret}&fb_exchange_token=${shortLivedToken}`;
+    const response = await axios.get(url, { timeout: 15000 });
     const longLivedToken = response.data.access_token;
 
+    // 2. Fetch the user's pages with the long-lived User Token
+    const pagesUrl = `https://graph.facebook.com/v24.0/me/accounts?fields=id,name,access_token,instagram_business_account&access_token=${longLivedToken}`;
+    const pagesResponse = await axios.get(pagesUrl, { timeout: 15000 });
+    const pages = pagesResponse.data.data;
+
+    // 3. Find a page with an instagram_business_account
+    const targetPage = pages.find((page: any) => page.instagram_business_account && page.instagram_business_account.id);
+
+    if (!targetPage) {
+      throw new Error("No Facebook Page with a connected Instagram Business Account found. Please ensure you have connected an Instagram account to your Facebook Page.");
+    }
+
+    const pageToken = targetPage.access_token;
+    const pageId = targetPage.id;
+    const igUserId = targetPage.instagram_business_account.id;
+
+    // 4. Save the Page Token to Firestore
     const uid = request.auth.uid;
     const db = admin.firestore();
 
     const docData = {
       ...responseData,
-      accessToken: longLivedToken,
+      accessToken: pageToken,
+      pageId: pageId,
+      igUserId: igUserId,
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     };
 
@@ -139,6 +159,6 @@ export const exchangeMetaToken = onCall({
     return { success: true, message: "Meta token exchanged successfully" };
   } catch (error: any) {
     logger.error("Error exchanging Meta token:", error.response?.data || error.message);
-    throw new HttpsError("internal", "Failed to exchange Meta token.");
+    throw new HttpsError("internal", error.message || "Failed to exchange Meta token.");
   }
 });

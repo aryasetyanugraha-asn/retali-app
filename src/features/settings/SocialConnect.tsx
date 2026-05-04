@@ -32,6 +32,7 @@ export const SocialConnect: React.FC = () => {
   const [integration, setIntegration] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isConnectingTikTok, setIsConnectingTikTok] = useState(false);
+  const [isConnectingMeta, setIsConnectingMeta] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -109,6 +110,9 @@ export const SocialConnect: React.FC = () => {
 
   const responseFacebook = async (response: any) => {
     if (response.accessToken && user?.uid) {
+      setIsConnectingMeta(true);
+      setError(null);
+      setSuccessMessage(null);
       try {
         const functionsInstance = getFunctions(app, 'asia-southeast2');
         const exchangeMetaTokenFn = httpsCallable(functionsInstance, 'exchangeMetaToken');
@@ -116,11 +120,12 @@ export const SocialConnect: React.FC = () => {
             shortLivedToken: response.accessToken,
             responseData: response
         });
-        setError(null);
         setSuccessMessage("Meta connected successfully!");
-      } catch (err) {
+      } catch (err: any) {
         console.error("Error saving integration:", err);
-        setError("Failed to save integration.");
+        setError(err.message || "Failed to connect Meta account.");
+      } finally {
+        setIsConnectingMeta(false);
       }
     } else {
         console.error("Facebook login failed or cancelled", response);
@@ -238,16 +243,16 @@ export const SocialConnect: React.FC = () => {
                 appId={appId}
                 autoLoad={false}
                 fields="name,email,picture"
-                scope="public_profile,email,pages_show_list,pages_read_engagement,pages_manage_posts,instagram_basic,instagram_content_publish"
+                scope="pages_show_list,pages_manage_posts,pages_manage_metadata,business_management,instagram_basic,instagram_content_publish"
                 callback={responseFacebook}
                 render={(renderProps: any) => (
                   <button
                     onClick={renderProps.onClick}
-                    disabled={!appId}
-                    className={`w-full sm:w-auto flex items-center justify-center px-4 py-2 text-white rounded-lg transition-colors font-medium ${!appId ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#1877F2] hover:bg-[#166fe5]'}`}
+                    disabled={!appId || isConnectingMeta}
+                    className={`w-full sm:w-auto flex items-center justify-center px-4 py-2 text-white rounded-lg transition-colors font-medium ${(!appId || isConnectingMeta) ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#1877F2] hover:bg-[#166fe5]'}`}
                   >
                     <Share2 className="w-5 h-5 mr-2" />
-                    Connect with Facebook & Instagram
+                    {isConnectingMeta ? 'Connecting...' : 'Connect with Facebook & Instagram'}
                   </button>
                 )}
               />
