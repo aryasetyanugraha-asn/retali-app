@@ -5,7 +5,7 @@ import { integrationService } from '../../services/firebaseService';
 import { useAuth } from '../../context/AuthContext';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { app } from '../../lib/firebase';
-import { Instagram, Facebook, Trash2, CheckCircle, AlertCircle, Share2, Music } from 'lucide-react';
+import { Instagram, Facebook, Trash2, CheckCircle, AlertCircle, Share2, Music, Phone } from 'lucide-react';
 
 // Helper to generate a random string for code_verifier
 const generateRandomString = (length: number) => {
@@ -36,6 +36,11 @@ export const SocialConnect: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  const [waIntegration, setWaIntegration] = useState<any>(null);
+  const [waStatus, setWaStatus] = useState<'disconnected' | 'loading' | 'qr_ready' | 'connected'>('disconnected');
+  const [waQrCode, setWaQrCode] = useState<string | null>(null);
+
+
   // Subscribe to Facebook and TikTok integration status
   useEffect(() => {
     if (!user?.uid) {
@@ -43,16 +48,24 @@ export const SocialConnect: React.FC = () => {
         return;
     }
 
+
     const unsubscribeFacebook = integrationService.subscribeToIntegration(user.uid, (data) => {
       setIntegration(data);
       setLoading(false);
     });
 
-    // TODO: implement specific subscribeToTikTokIntegration in integrationService,
-    // or just fetch it here for simplicity.
-    // Wait, let's look at how subscribeToIntegration works.
+    const unsubscribeWhatsApp = integrationService.subscribeToIntegration(user.uid, (data) => {
+      setWaIntegration(data);
+      if (data?.status === 'connected') {
+        setWaStatus('connected');
+      }
+    }, 'whatsapp');
 
-    return () => unsubscribeFacebook();
+    return () => {
+      unsubscribeFacebook();
+      unsubscribeWhatsApp();
+    };
+
   }, [user]);
 
   // Handle TikTok Redirect
@@ -135,11 +148,50 @@ export const SocialConnect: React.FC = () => {
     }
   };
 
+
+  const handleConnectWhatsApp = async () => {
+    setWaStatus('loading');
+    setError(null);
+    setWaQrCode(null);
+    try {
+      const functionsInstance = getFunctions(app, 'asia-southeast2');
+      const generateWhatsAppQRFn = httpsCallable(functionsInstance, 'generateWhatsAppQR');
+
+      const result: any = await generateWhatsAppQRFn();
+
+      if (result.data.status === 'connected') {
+        setWaStatus('connected');
+      } else if (result.data.status === 'qr_ready') {
+        setWaQrCode(result.data.qrCode);
+        setWaStatus('qr_ready');
+      }
+    } catch (err: any) {
+      console.error("Error generating WhatsApp QR:", err);
+      setError(err.message || "Failed to generate WhatsApp QR Code.");
+      setWaStatus('disconnected');
+    }
+  };
+
+  const handleDisconnectWhatsApp = async () => {
+    if (!user?.uid) return;
+    if (window.confirm("Are you sure you want to disconnect WhatsApp?")) {
+        try {
+            await integrationService.deleteUserIntegration(user.uid, 'whatsapp');
+            setWaIntegration(null);
+            setWaStatus('disconnected');
+        } catch (err) {
+            console.error("Error disconnecting WhatsApp:", err);
+            setError("Failed to disconnect WhatsApp.");
+        }
+    }
+  };
+
   const handleDisconnect = async () => {
     if (!user?.uid) return;
     if (window.confirm("Are you sure you want to disconnect your social accounts?")) {
         try {
-            await integrationService.deleteUserIntegration(user.uid);
+            await integrationService.deleteUserIntegration(user.uid, 'instagram');
+            await integrationService.deleteUserIntegration(user.uid, 'facebook');
             setIntegration(null);
         } catch (err) {
             console.error("Error disconnecting:", err);
@@ -190,6 +242,7 @@ export const SocialConnect: React.FC = () => {
           <Facebook className="w-6 h-6 text-blue-600" />
           <Instagram className="w-6 h-6 text-pink-600" />
           <Music className="w-6 h-6 text-black" />
+          <Phone className="w-6 h-6 text-green-600" />
         </div>
         <div>
           <h3 className="text-lg font-semibold text-gray-900">Social Media Connection</h3>
@@ -276,6 +329,51 @@ export const SocialConnect: React.FC = () => {
                 </button>
            </div>
         </div>
+
+        {/* WhatsApp Section */}
+        <div className="border-t border-gray-100 pt-6">
+           <h4 className="text-sm font-medium text-gray-700 mb-3 flex items-center">
+              WhatsApp
+           </h4>
+
+           {waStatus === 'connected' ? (
+            <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg border border-green-100">
+              <div className="flex items-center text-green-700 font-medium">
+                <CheckCircle className="w-5 h-5 mr-2" />
+                Connected {waIntegration?.name ? `(${waIntegration.name})` : ''}
+              </div>
+              <button
+                onClick={handleDisconnectWhatsApp}
+                className="flex items-center px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-md transition-colors border border-red-200 bg-white"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Disconnect
+              </button>
+            </div>
+           ) : (
+            <div className="flex flex-col space-y-4">
+              <div className="flex flex-col sm:flex-row gap-3">
+                  <button
+                    onClick={handleConnectWhatsApp}
+                    disabled={waStatus === 'loading' || waStatus === 'qr_ready'}
+                    className={`w-full sm:w-auto flex items-center justify-center px-4 py-2 text-white rounded-lg transition-colors font-medium ${(waStatus === 'loading' || waStatus === 'qr_ready') ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}
+                  >
+                    <Phone className="w-5 h-5 mr-2" />
+                    {waStatus === 'loading' ? 'Generating QR...' : 'Connect WhatsApp'}
+                  </button>
+              </div>
+
+              {waStatus === 'qr_ready' && waQrCode && (
+                <div className="flex flex-col items-center p-4 border border-gray-200 rounded-lg bg-gray-50 max-w-sm">
+                  <p className="text-sm font-medium text-gray-700 mb-2">Scan this QR code with WhatsApp</p>
+                  <img src={waQrCode} alt="WhatsApp QR Code" className="w-64 h-64 border border-gray-300 rounded bg-white p-2" />
+                  <p className="text-xs text-gray-500 mt-2 text-center">Open WhatsApp on your phone {"->"} Linked Devices {"->"} Link a Device</p>
+                </div>
+              )}
+            </div>
+           )}
+        </div>
+
       </div>
     </div>
   );
