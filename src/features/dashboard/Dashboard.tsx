@@ -3,6 +3,7 @@ import { useRole } from '../../context/RoleContext';
 import { useUserProfile } from '../../hooks/useUserProfile';
 import { useNavigate } from 'react-router-dom';
 import { dbService } from '../../services/firebaseService';
+import { where, QueryConstraint } from 'firebase/firestore';
 import {
   Users,
   TrendingUp,
@@ -90,6 +91,13 @@ export const Dashboard: React.FC = () => {
 
   useEffect(() => {
     setLoading(true);
+    let constraints: QueryConstraint[] = [];
+    if (role === 'CABANG' && profile?.branchId) {
+      constraints.push(where('branchId', '==', profile.branchId));
+    } else if (role === 'MITRA' && profile?.uid) {
+      constraints.push(where('partnerId', '==', profile.uid));
+    }
+
     const unsubscribe = dbService.subscribeToCollection('leads', (leadsData) => {
       const totalLeads = leadsData.length;
       const hotLeads = leadsData.filter(lead => lead.status === 'HOT').length;
@@ -115,10 +123,10 @@ export const Dashboard: React.FC = () => {
         chartData
       });
       setLoading(false);
-    });
+    }, constraints, () => setLoading(false));
 
     return () => unsubscribe();
-  }, [role]);
+  }, [role, profile]);
 
   return (
     <div className="space-y-6">

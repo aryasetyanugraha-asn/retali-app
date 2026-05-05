@@ -61,7 +61,12 @@ export const MitraList: React.FC = () => {
 
       setMitras(mappedMitras);
       setLoading(false);
-    }, [where('role', '==', 'MITRA')]);
+    },
+    [where('role', '==', 'MITRA')],
+    (error) => {
+      console.error("Error fetching mitras:", error);
+      setLoading(false);
+    });
 
     return () => unsubscribe();
   }, []);

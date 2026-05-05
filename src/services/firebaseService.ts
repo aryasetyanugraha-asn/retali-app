@@ -64,7 +64,8 @@ export const dbService = {
   subscribeToCollection: (
     collectionName: string,
     callback: (data: any[]) => void,
-    constraints: QueryConstraint[] = []
+    constraints: QueryConstraint[] = [],
+    onError?: (error: any) => void
   ) => {
     const q = query(collection(db, collectionName), ...constraints);
     return onSnapshot(q, (snapshot) => {
@@ -73,6 +74,10 @@ export const dbService = {
         ...doc.data()
       }));
       callback(data);
+    }, (error) => {
+      console.error(`Error in subscribeToCollection (${collectionName}):`, error);
+      if (onError) onError(error);
+      else callback([]); // Prevent infinite loading if error occurs and no handler is provided
     });
   }
 };

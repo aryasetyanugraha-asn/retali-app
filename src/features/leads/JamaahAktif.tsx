@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { dbService } from '../../services/firebaseService';
+import { useRole } from '../../context/RoleContext';
+import { useUserProfile } from '../../hooks/useUserProfile';
+import { where, QueryConstraint } from 'firebase/firestore';
 import { Phone, Search, Award, FileText, CheckCircle2, Circle, X } from 'lucide-react';
 
 interface Jamaah {
@@ -37,8 +40,17 @@ export const JamaahAktif: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedJamaah, setSelectedJamaah] = useState<Jamaah | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { role } = useRole();
+  const { profile } = useUserProfile();
 
   useEffect(() => {
+    let constraints: QueryConstraint[] = [];
+    if (role === 'CABANG' && profile?.branchId) {
+      constraints.push(where('branchId', '==', profile.branchId));
+    } else if (role === 'MITRA' && profile?.uid) {
+      constraints.push(where('partnerId', '==', profile.uid));
+    }
+
     // Note: in a real large-scale app, we might want to query specifically where status == 'WON'
     // to reduce read operations, but since we are subscribing to the whole collection
     // and filtering client side elsewhere, we do the same here for consistency.
@@ -70,10 +82,10 @@ export const JamaahAktif: React.FC = () => {
 
       setJamaah(mappedJamaah);
       setLoading(false);
-    });
+    }, constraints, () => setLoading(false));
 
     return () => unsubscribe();
-  }, []);
+  }, [role, profile]);
 
   const filteredJamaah = jamaah.filter(person =>
     person.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
