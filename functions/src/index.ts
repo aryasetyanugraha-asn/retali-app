@@ -40,6 +40,9 @@ export const replyToMetaMessage = replyToMetaMessageService;
 // WhatsApp Service (v2)
 export const sendWhatsAppMessage = sendWhatsAppMessageService;
 
+import { generateWhatsAppQR as generateWhatsAppQRService } from "./services/whatsappBaileysService";
+export const generateWhatsAppQR = generateWhatsAppQRService;
+
 // Integration Service (v2)
 export const exchangeTikTokToken = exchangeTikTokTokenService;
 export const exchangeMetaToken = exchangeMetaTokenService;
