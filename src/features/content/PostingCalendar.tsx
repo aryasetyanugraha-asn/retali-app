@@ -89,7 +89,11 @@ export const PostingCalendar: React.FC = () => {
         setPosts(data as ScheduledPost[]);
         setLoading(false);
       },
-      constraints
+      constraints,
+      (error) => {
+        console.error("Error fetching scheduledPosts:", error);
+        setLoading(false);
+      }
     );
 
     return () => unsubscribe();

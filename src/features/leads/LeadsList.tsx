@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { dbService } from '../../services/firebaseService';
 import { useUserProfile } from '../../hooks/useUserProfile';
+import { useRole } from '../../context/RoleContext';
+import { where, QueryConstraint } from 'firebase/firestore';
 import {
   Search,
   Filter,
@@ -59,6 +61,7 @@ const PlatformBadge = ({ platform }: { platform: Platform }) => {
 
 export const LeadsList: React.FC = () => {
   const { profile } = useUserProfile();
+  const { role } = useRole();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<LeadStatus | 'ALL'>('ALL');
@@ -82,6 +85,13 @@ export const LeadsList: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
+    let constraints: QueryConstraint[] = [];
+    if (role === 'CABANG' && profile?.branchId) {
+      constraints.push(where('branchId', '==', profile.branchId));
+    } else if (role === 'MITRA' && profile?.uid) {
+      constraints.push(where('partnerId', '==', profile.uid));
+    }
+
     const unsubscribe = dbService.subscribeToCollection('leads', (data) => {
       const mappedLeads = data.map(doc => ({
         id: doc.id,
@@ -96,10 +106,10 @@ export const LeadsList: React.FC = () => {
 
       setLeads(mappedLeads);
       setLoading(false);
-    });
+    }, constraints, () => setLoading(false));
 
     return () => unsubscribe();
-  }, []);
+  }, [role, profile]);
 
   const filteredLeads = leads.filter(lead => {
     // EXCLUDE 'WON' leads from the Kanban board

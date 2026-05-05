@@ -12,6 +12,9 @@ import {
   Sparkles
 } from 'lucide-react';
 import { dbService, functionsService } from '../../services/firebaseService';
+import { useRole } from '../../context/RoleContext';
+import { useUserProfile } from '../../hooks/useUserProfile';
+import { where, QueryConstraint } from 'firebase/firestore';
 
 interface Message {
   id: string;
@@ -51,6 +54,8 @@ export const UnifiedInbox: React.FC = () => {
   const [aiDraft, setAiDraft] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { role } = useRole();
+  const { profile } = useUserProfile();
 
   // Auto-expand textarea
   useEffect(() => {
@@ -64,6 +69,13 @@ export const UnifiedInbox: React.FC = () => {
 
   // Subscribe to conversations
   useEffect(() => {
+    let constraints: QueryConstraint[] = [];
+    if (role === 'CABANG' && profile?.branchId) {
+      constraints.push(where('branchId', '==', profile.branchId));
+    } else if (role === 'MITRA' && profile?.uid) {
+      constraints.push(where('partnerId', '==', profile.uid));
+    }
+
     const unsubscribe = dbService.subscribeToCollection(
       'conversations',
       (data) => {
@@ -74,10 +86,12 @@ export const UnifiedInbox: React.FC = () => {
           return timeB - timeA;
         });
         setConversations(sortedData as Conversation[]);
-      }
+      },
+      constraints,
+      (error) => console.error("Error fetching conversations:", error)
     );
     return () => unsubscribe();
-  }, []);
+  }, [role, profile]);
 
   // Automatically select first conversation on desktop
   useEffect(() => {

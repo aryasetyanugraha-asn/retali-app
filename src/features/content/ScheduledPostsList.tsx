@@ -46,7 +46,11 @@ export const ScheduledPostsList: React.FC = () => {
       [
         where('userId', '==', user.uid),
         orderBy('createdAt', 'desc')
-      ]
+      ],
+      (error) => {
+        console.error("Error fetching posts:", error);
+        setLoading(false);
+      }
     );
 
     return () => unsubscribe();
