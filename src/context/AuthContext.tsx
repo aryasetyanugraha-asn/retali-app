@@ -16,6 +16,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // For local Playwright testing, mock a user if we bypass auth
+    if (import.meta.env.DEV && window.location.href.includes('mock_auth=true')) {
+      setUser({ uid: 'mock-user', displayName: 'Mock User', email: 'mock@example.com' } as User);
+      setLoading(false);
+      return;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setLoading(false);
