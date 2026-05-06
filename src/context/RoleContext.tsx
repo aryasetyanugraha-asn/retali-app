@@ -17,6 +17,12 @@ export const RoleProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [role, setRole] = useState<UserRole>(null);
 
   useEffect(() => {
+    // For local Playwright testing, mock a user role if we bypass auth
+    if (import.meta.env.DEV && window.location.href.includes('mock_auth=true')) {
+      setRole('PUSAT');
+      return;
+    }
+
     const fetchUserRole = async () => {
       if (user) {
         try {
