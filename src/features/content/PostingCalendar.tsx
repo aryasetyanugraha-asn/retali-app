@@ -82,7 +82,7 @@ export const PostingCalendar: React.FC = () => {
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !profile) return;
 
     setLoading(true);
 
@@ -169,7 +169,7 @@ export const PostingCalendar: React.FC = () => {
 
   const handleSchedulePost = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !content || platforms.length === 0 || !scheduledDate) {
+    if (!user || !profile || !content || platforms.length === 0 || !scheduledDate) {
       alert('Tolong lengkapi form dengan benar.');
       return;
     }
@@ -205,6 +205,7 @@ export const PostingCalendar: React.FC = () => {
 
       if (profile?.role?.toUpperCase() === 'MITRA') {
          newPost.partnerId = user.uid;
+         newPost.userId = user.uid; // Forcefully inject userId and partnerId just in case
       }
       if (profile?.role?.toUpperCase() === 'CABANG' || profile?.branchId) {
          newPost.branchId = profile.branchId;
@@ -627,7 +628,7 @@ export const PostingCalendar: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={!content || platforms.length === 0 || !scheduledDate || isUploading}
+                  disabled={!profile || !content || platforms.length === 0 || !scheduledDate || isUploading}
                   className="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isUploading ? 'Menyimpan...' : 'Jadwalkan'}
