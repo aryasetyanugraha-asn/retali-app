@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { dbService } from '../../services/firebaseService';
+import { storage } from '../../lib/firebase';
 import { useAuth } from '../../context/AuthContext';
 import { useUserProfile } from '../../hooks/useUserProfile';
 import { where, orderBy, Timestamp } from 'firebase/firestore';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import {
   Calendar,
   Clock,
@@ -70,6 +72,9 @@ export const PostingCalendar: React.FC = () => {
   // Form state
   const [content, setContent] = useState('');
   const [mediaUrlsInput, setMediaUrlsInput] = useState(''); // Allow comma-separated inputs
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [isUploading, setIsUploading] = useState(false);
   const [mediaType, setMediaType] = useState<'IMAGE' | 'VIDEO' | 'CAROUSEL'>('IMAGE');
   const [platforms, setPlatforms] = useState<string[]>([]);
   const [scheduledDate, setScheduledDate] = useState('');
@@ -108,6 +113,58 @@ export const PostingCalendar: React.FC = () => {
     );
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setSelectedFiles(Array.from(e.target.files));
+    }
+  };
+
+  const removeSelectedFile = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const uploadFilesToStorage = async (files: File[]): Promise<string[]> => {
+    const uploadedUrls: string[] = [];
+    setIsUploading(true);
+    setUploadProgress(0);
+
+    const totalFiles = files.length;
+    let completedFiles = 0;
+
+    for (const file of files) {
+      const timestamp = Date.now();
+      const filename = file.name.replace(/[^a-zA-Z0-9.]/g, "_");
+      const storageRef = ref(storage, `post_media/${user?.uid}/${timestamp}_${filename}`);
+
+      const uploadTask = uploadBytesResumable(storageRef, file);
+
+      await new Promise<void>((resolve, reject) => {
+        uploadTask.on(
+          'state_changed',
+          (snapshot) => {
+            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+            // Calculate overall progress across all files
+            const overallProgress = ((completedFiles * 100) + progress) / totalFiles;
+            setUploadProgress(Math.round(overallProgress));
+          },
+          (error) => {
+            console.error('Upload failed:', error);
+            reject(error);
+          },
+          async () => {
+            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+            uploadedUrls.push(downloadURL);
+            resolve();
+          }
+        );
+      });
+      completedFiles++;
+    }
+
+    setIsUploading(false);
+    return uploadedUrls;
+  };
+
   const handleSchedulePost = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !content || platforms.length === 0 || !scheduledDate) {
@@ -118,17 +175,24 @@ export const PostingCalendar: React.FC = () => {
     try {
       const scheduledTimestamp = new Date(scheduledDate);
 
+      let uploadedUrls: string[] = [];
+      if (selectedFiles.length > 0) {
+        uploadedUrls = await uploadFilesToStorage(selectedFiles);
+      }
+
       // Parse media URLs
-      const urls = mediaUrlsInput.split(',').map(u => u.trim()).filter(u => u);
+      const manualUrls = mediaUrlsInput.split(',').map(u => u.trim()).filter(u => u);
+      const allUrls = [...manualUrls, ...uploadedUrls];
+
       let finalMediaType = mediaType;
-      if (urls.length > 1 && mediaType === 'IMAGE') {
+      if (allUrls.length > 1 && mediaType === 'IMAGE') {
           finalMediaType = 'CAROUSEL';
       }
 
       const newPost: Partial<ScheduledPost> = {
         content,
-        imageUrl: urls.length > 0 ? urls[0] : undefined, // Keep for backward compatibility
-        mediaUrls: urls,
+        imageUrl: allUrls.length > 0 ? allUrls[0] : undefined, // Keep for backward compatibility
+        mediaUrls: allUrls,
         mediaType: finalMediaType,
         platforms,
         status: 'PENDING',
@@ -150,6 +214,8 @@ export const PostingCalendar: React.FC = () => {
       setIsModalOpen(false);
       setContent('');
       setMediaUrlsInput('');
+      setSelectedFiles([]);
+      setUploadProgress(0);
       setMediaType('IMAGE');
       setPlatforms([]);
       setScheduledDate('');
@@ -334,21 +400,79 @@ export const PostingCalendar: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Media URL (Opsional)</label>
-                <div className="relative mb-2">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Upload className="w-4 h-4 text-gray-400" />
-                    </div>
-                    <textarea
-                        value={mediaUrlsInput}
-                        onChange={(e) => setMediaUrlsInput(e.target.value)}
-                        placeholder="https://example.com/image.jpg, https://example.com/image2.jpg"
-                        className="w-full pl-9 p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 resize-none h-20 text-sm"
-                    />
-                </div>
-                <p className="text-xs text-gray-500 mb-2">Pisahkan dengan koma untuk memasukkan lebih dari satu URL (Slide/Carousel).</p>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Media Upload</label>
 
-                <div className="flex gap-4">
+                <div className="space-y-4 border border-gray-200 rounded-lg p-4 bg-gray-50">
+                  {/* URL Input */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Dari URL</label>
+                    <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <Upload className="w-4 h-4 text-gray-400" />
+                        </div>
+                        <textarea
+                            value={mediaUrlsInput}
+                            onChange={(e) => setMediaUrlsInput(e.target.value)}
+                            placeholder="https://example.com/image.jpg, https://example.com/image2.jpg"
+                            className="w-full pl-9 p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 resize-none h-20 text-sm bg-white"
+                        />
+                    </div>
+                    <p className="text-[10px] text-gray-500 mt-1">Pisahkan dengan koma untuk banyak URL.</p>
+                  </div>
+
+                  <div className="relative flex items-center py-2">
+                    <div className="flex-grow border-t border-gray-300"></div>
+                    <span className="flex-shrink-0 mx-4 text-gray-400 text-xs font-medium uppercase">ATAU</span>
+                    <div className="flex-grow border-t border-gray-300"></div>
+                  </div>
+
+                  {/* File Upload Input */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Upload File (Gambar/Video)</label>
+                    <input
+                      type="file"
+                      accept="image/*,video/*"
+                      multiple
+                      onChange={handleFileChange}
+                      className="block w-full text-sm text-gray-500
+                        file:mr-4 file:py-2 file:px-4
+                        file:rounded-md file:border-0
+                        file:text-sm file:font-semibold
+                        file:bg-emerald-50 file:text-emerald-700
+                        hover:file:bg-emerald-100 cursor-pointer"
+                    />
+
+                    {/* Visual Preview */}
+                    {selectedFiles.length > 0 && (
+                      <div className="mt-3 flex gap-2 flex-wrap">
+                        {selectedFiles.map((file, idx) => (
+                          <div key={idx} className="relative w-16 h-16 border rounded bg-white overflow-hidden group">
+                            {file.type.startsWith('video/') ? (
+                               <div className="w-full h-full flex items-center justify-center bg-gray-900">
+                                 <Video className="w-6 h-6 text-white/50" />
+                               </div>
+                            ) : (
+                               <img
+                                 src={URL.createObjectURL(file)}
+                                 alt={`preview ${idx}`}
+                                 className="w-full h-full object-cover"
+                               />
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => removeSelectedFile(idx)}
+                              className="absolute top-0 right-0 bg-red-500 text-white p-0.5 rounded-bl-md opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex gap-4 mt-4">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="radio"
@@ -421,20 +545,28 @@ export const PostingCalendar: React.FC = () => {
                 />
               </div>
 
+              {isUploading && (
+                <div className="w-full bg-gray-200 rounded-full h-2.5 mt-2">
+                  <div className="bg-emerald-600 h-2.5 rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }}></div>
+                  <p className="text-xs text-center text-gray-500 mt-1">Mengunggah... {uploadProgress}%</p>
+                </div>
+              )}
+
               <div className="pt-4 border-t border-gray-100 flex justify-end gap-3 mt-4">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
+                  disabled={isUploading}
                   className="px-4 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors font-medium"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  disabled={!content || platforms.length === 0 || !scheduledDate}
+                  disabled={!content || platforms.length === 0 || !scheduledDate || isUploading}
                   className="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Jadwalkan
+                  {isUploading ? 'Menyimpan...' : 'Jadwalkan'}
                 </button>
               </div>
             </form>
