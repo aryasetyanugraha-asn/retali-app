@@ -88,7 +88,7 @@ export const PostingCalendar: React.FC = () => {
 
     let constraints: any[] = [orderBy('scheduledAt', 'asc')];
     if (profile?.role === 'MITRA') {
-      constraints.push(where('partnerId', '==', profile.partnerId || user.uid));
+      constraints.push(where('partnerId', '==', user.uid));
     } else if (profile?.role === 'CABANG') {
       constraints.push(where('branchId', '==', profile.branchId));
     }
@@ -204,7 +204,7 @@ export const PostingCalendar: React.FC = () => {
       };
 
       if (profile?.role === 'MITRA') {
-         newPost.partnerId = profile.partnerId || user.uid;
+         newPost.partnerId = user.uid;
       }
       if (profile?.role === 'CABANG' || profile?.branchId) {
          newPost.branchId = profile.branchId;

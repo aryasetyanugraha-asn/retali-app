@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { functionsService, dbService } from '../../services/firebaseService';
 import { useAuth } from '../../context/AuthContext';
+import { useUserProfile } from '../../hooks/useUserProfile';
 import { Sparkles, Check, Loader2, Plus, Send } from 'lucide-react';
 import { Timestamp } from 'firebase/firestore';
 
@@ -31,6 +32,7 @@ interface PostIdea {
 
 export const CampaignPlanner: React.FC = () => {
   const { user } = useAuth();
+  const { profile } = useUserProfile();
   const [step, setStep] = useState(1);
   const [title, setTitle] = useState('');
   const [targetAudience, setTargetAudience] = useState('');
@@ -153,7 +155,7 @@ export const CampaignPlanner: React.FC = () => {
         // spread posts e.g. every 2-3 days
         scheduledDate.setDate(scheduledDate.getDate() + (i * 2) + 1);
 
-        await dbService.addDocument('scheduledPosts', {
+        const scheduledPostPayload: any = {
           userId: user.uid,
           platforms: ['INSTAGRAM'], // Fixed payload to match PostingCalendar
           content: post.caption,
@@ -163,7 +165,16 @@ export const CampaignPlanner: React.FC = () => {
           scheduledAt: Timestamp.fromDate(scheduledDate),
           createdAt: Timestamp.now(),
           campaignId: campaignId
-        });
+        };
+
+        if (profile?.role === 'MITRA') {
+           scheduledPostPayload.partnerId = user.uid;
+        }
+        if (profile?.role === 'CABANG' || profile?.branchId) {
+           scheduledPostPayload.branchId = profile.branchId;
+        }
+
+        await dbService.addDocument('scheduledPosts', scheduledPostPayload);
       }
 
       alert(`Successfully scheduled ${posts.length} posts for ${monthName}`);

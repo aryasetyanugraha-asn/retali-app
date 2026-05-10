@@ -35,8 +35,9 @@ export const authService = {
 
 // Database Service Abstraction (Generic)
 export const dbService = {
-  getCollection: async (collectionName: string) => {
-    const querySnapshot = await getDocs(collection(db, collectionName));
+  getCollection: async (collectionName: string, constraints: QueryConstraint[] = []) => {
+    const q = query(collection(db, collectionName), ...constraints);
+    const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   },
 
