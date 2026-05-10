@@ -5,7 +5,9 @@ import axios from "axios";
 
 interface PostRequest {
     content: string;
-    imageUrl?: string;
+    imageUrl?: string; // Kept for backwards compatibility
+    mediaUrls?: string[];
+    mediaType?: 'IMAGE' | 'VIDEO' | 'CAROUSEL';
     platform: 'INSTAGRAM' | 'FACEBOOK' | 'TIKTOK';
 }
 
@@ -25,11 +27,11 @@ export const postToSocial = onCall({ region: "asia-southeast2", cors: true }, as
 
         // Call appropriate API
         if (platform === 'instagram') {
-            success = await postToInstagramAPI(contextAuth.uid, postData.content, postData.imageUrl);
+            success = await postToInstagramAPI(contextAuth.uid, postData.content, postData.imageUrl, postData.mediaUrls, postData.mediaType);
         } else if (platform === 'facebook') {
-            success = await postToFacebookGraphAPI(contextAuth.uid, postData.content, postData.imageUrl);
+            success = await postToFacebookGraphAPI(contextAuth.uid, postData.content, postData.imageUrl, postData.mediaUrls, postData.mediaType);
         } else if (platform === 'tiktok') {
-            success = await postToTikTokAPI(contextAuth.uid, postData.content, postData.imageUrl);
+            success = await postToTikTokAPI(contextAuth.uid, postData.content, postData.imageUrl, postData.mediaUrls, postData.mediaType);
         } else {
             throw new HttpsError('invalid-argument', `Unknown platform ${platform}`);
         }
@@ -52,6 +54,11 @@ export const postToSocial = onCall({ region: "asia-southeast2", cors: true }, as
 // --- Scheduled Posts Logic ---
 
 /**
+ * Utility function to sleep for a given number of milliseconds
+ */
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
  * Function to post to Instagram via Graph API
  */
 async function getFreshToken(userId: string, platform: string): Promise<string | undefined> {
@@ -59,17 +66,20 @@ async function getFreshToken(userId: string, platform: string): Promise<string |
   return doc.data()?.accessToken;
 }
 
-async function postToInstagramAPI(userId: string, message: string, imageUrl?: string): Promise<boolean> {
+async function postToInstagramAPI(userId: string, message: string, imageUrl?: string, mediaUrls?: string[], mediaType?: 'IMAGE' | 'VIDEO' | 'CAROUSEL'): Promise<boolean> {
   const token = await getFreshToken(userId, 'instagram');
   if (!token) {
     logger.error(`No token found for instagram for user ${userId}`);
     return false;
   }
   console.log('Token used: ' + token.substring(0, 15) + '...');
-  logger.info("Instagram Graph API call", { tokenPrefix: token.substring(0, 10), message, imageUrl });
+  logger.info("Instagram Graph API call", { tokenPrefix: token.substring(0, 10), message, imageUrl, mediaUrls, mediaType });
 
-  if (!imageUrl) {
-    throw new Error("Instagram requires an image URL to post.");
+  const urlsToUse = mediaUrls && mediaUrls.length > 0 ? mediaUrls : (imageUrl ? [imageUrl] : []);
+  const resolvedMediaType = mediaType || (urlsToUse.length > 1 ? 'CAROUSEL' : 'IMAGE');
+
+  if (urlsToUse.length === 0) {
+    throw new Error("Instagram requires at least one media URL to post.");
   }
 
   try {
@@ -94,17 +104,80 @@ async function postToInstagramAPI(userId: string, message: string, imageUrl?: st
     logger.info(`Found Facebook Page ID: ${pageId} for Instagram posting`);
     logger.info(`Found Instagram User ID: ${igUserId}`);
 
-    // 3. Create Media Container
     const mediaContainerUrl = `https://graph.facebook.com/v24.0/${igUserId}/media`;
-    const mediaContainerResponse = await axios.post(mediaContainerUrl, null, {
-      params: {
-        image_url: imageUrl,
-        caption: message,
-        access_token: token,
-      }
-    });
+    let containerId: string | null = null;
 
-    const containerId = mediaContainerResponse.data.id;
+    if (resolvedMediaType === 'CAROUSEL') {
+        // 3a. Create Carousel Item Containers
+        const itemContainerIds: string[] = [];
+        for (const url of urlsToUse) {
+            const itemResponse = await axios.post(mediaContainerUrl, null, {
+                params: {
+                    image_url: url,
+                    is_carousel_item: true,
+                    access_token: token,
+                }
+            });
+            if (itemResponse.data.id) {
+                itemContainerIds.push(itemResponse.data.id);
+            }
+        }
+
+        if (itemContainerIds.length === 0) {
+            throw new Error("Failed to create any carousel items.");
+        }
+
+        // 3b. Create Carousel Container
+        const carouselResponse = await axios.post(mediaContainerUrl, null, {
+            params: {
+                caption: message,
+                media_type: 'CAROUSEL',
+                children: itemContainerIds.join(','),
+                access_token: token,
+            }
+        });
+        containerId = carouselResponse.data.id;
+
+    } else if (resolvedMediaType === 'VIDEO') {
+        // 3c. Create Video Container
+        const videoResponse = await axios.post(mediaContainerUrl, null, {
+            params: {
+                media_type: 'VIDEO',
+                video_url: urlsToUse[0],
+                caption: message,
+                access_token: token,
+            }
+        });
+        containerId = videoResponse.data.id;
+
+        // Poll for video processing status
+        let isFinished = false;
+        let attempts = 0;
+        while (!isFinished && attempts < 10) {
+            await sleep(5000); // wait 5 seconds
+            const statusResponse = await axios.get(`https://graph.facebook.com/v24.0/${containerId}?fields=status_code&access_token=${token}`);
+            const statusCode = statusResponse.data.status_code;
+            logger.info(`Video processing status for ${containerId}: ${statusCode}`);
+            if (statusCode === 'FINISHED') {
+                isFinished = true;
+            } else if (statusCode === 'ERROR') {
+                throw new Error("Instagram video processing failed.");
+            }
+            attempts++;
+        }
+
+    } else {
+        // 3d. Create Single Image Container
+        const imageResponse = await axios.post(mediaContainerUrl, null, {
+            params: {
+                image_url: urlsToUse[0],
+                caption: message,
+                access_token: token,
+            }
+        });
+        containerId = imageResponse.data.id;
+    }
+
     if (!containerId) {
       throw new Error("Failed to create media container.");
     }
@@ -135,16 +208,19 @@ async function postToInstagramAPI(userId: string, message: string, imageUrl?: st
 }
 
 /**
- * Mock function to simulate posting to Facebook via Graph API
+ * Function to post to Facebook via Graph API
  */
-async function postToFacebookGraphAPI(userId: string, message: string, imageUrl?: string): Promise<boolean> {
+async function postToFacebookGraphAPI(userId: string, message: string, imageUrl?: string, mediaUrls?: string[], mediaType?: 'IMAGE' | 'VIDEO' | 'CAROUSEL'): Promise<boolean> {
   const token = await getFreshToken(userId, 'facebook');
   if (!token) {
     logger.error(`No token found for facebook for user ${userId}`);
     return false;
   }
   console.log('Token used: ' + token.substring(0, 15) + '...');
-  logger.info("Facebook Graph API call", { tokenPrefix: token.substring(0, 10), message, imageUrl });
+  logger.info("Facebook Graph API call", { tokenPrefix: token.substring(0, 10), message, imageUrl, mediaUrls, mediaType });
+
+  const urlsToUse = mediaUrls && mediaUrls.length > 0 ? mediaUrls : (imageUrl ? [imageUrl] : []);
+  const resolvedMediaType = mediaType || (urlsToUse.length > 1 ? 'CAROUSEL' : 'IMAGE');
 
   try {
     // 1. Get Page ID from the Page Access Token
@@ -164,9 +240,33 @@ async function postToFacebookGraphAPI(userId: string, message: string, imageUrl?
         access_token: token,
     };
 
-    if (imageUrl) {
+    if (resolvedMediaType === 'VIDEO' && urlsToUse.length > 0) {
+        publishUrl = `https://graph.facebook.com/v24.0/${pageId}/videos`;
+        params.file_url = urlsToUse[0];
+        params.description = message;
+    } else if (resolvedMediaType === 'CAROUSEL' && urlsToUse.length > 1) {
+        // For carousel, we first need to upload unpublished photos
+        const attached_media = [];
+        for (const url of urlsToUse) {
+             const photoUrl = `https://graph.facebook.com/v24.0/${pageId}/photos`;
+             const photoRes = await axios.post(photoUrl, null, {
+                 params: {
+                     url: url,
+                     published: false,
+                     access_token: token
+                 }
+             });
+             if (photoRes.data.id) {
+                 attached_media.push({ media_fbid: photoRes.data.id });
+             }
+        }
+
+        publishUrl = `https://graph.facebook.com/v24.0/${pageId}/feed`;
+        params.message = message;
+        params.attached_media = JSON.stringify(attached_media);
+    } else if (urlsToUse.length > 0) {
         publishUrl = `https://graph.facebook.com/v24.0/${pageId}/photos`;
-        params.url = imageUrl;
+        params.url = urlsToUse[0];
         params.message = message;
     } else {
         publishUrl = `https://graph.facebook.com/v24.0/${pageId}/feed`;
@@ -188,7 +288,7 @@ async function postToFacebookGraphAPI(userId: string, message: string, imageUrl?
 /**
  * Mock function to simulate posting to TikTok via TikTok API
  */
-async function postToTikTokAPI(userId: string, message: string, videoUrl?: string): Promise<boolean> {
+async function postToTikTokAPI(userId: string, message: string, videoUrl?: string, mediaUrls?: string[], mediaType?: 'IMAGE' | 'VIDEO' | 'CAROUSEL'): Promise<boolean> {
   const token = await getFreshToken(userId, 'tiktok');
   if (!token) {
     logger.error(`No token found for tiktok for user ${userId}`);
@@ -220,6 +320,8 @@ export async function processScheduledPost(postId: string, postData: any, db: ad
   const userId = postData.userId;
   const content = postData.content;
   const imageUrl = postData.imageUrl;
+  const mediaUrls = postData.mediaUrls;
+  const mediaType = postData.mediaType;
 
   let allSuccessful = true;
 
@@ -234,12 +336,12 @@ export async function processScheduledPost(postId: string, postData: any, db: ad
 
       // Call appropriate API
       if (normalizedPlatform === 'instagram') {
-        success = await postToInstagramAPI(userId, content, imageUrl);
+        success = await postToInstagramAPI(userId, content, imageUrl, mediaUrls, mediaType);
       } else if (normalizedPlatform === 'facebook') {
-        success = await postToFacebookGraphAPI(userId, content, imageUrl);
+        success = await postToFacebookGraphAPI(userId, content, imageUrl, mediaUrls, mediaType);
       } else if (normalizedPlatform === 'tiktok') {
         // Assume imageUrl contains video URL for TikTok for now
-        success = await postToTikTokAPI(userId, content, imageUrl);
+        success = await postToTikTokAPI(userId, content, imageUrl, mediaUrls, mediaType);
       } else {
         logger.warn(`Unknown platform ${normalizedPlatform} for post ${postId}`);
         success = false;

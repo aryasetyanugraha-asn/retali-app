@@ -17,7 +17,9 @@ interface ScheduledPost {
   topic: string;
   platform: string;
   content: string;
-  imageUrl?: string;
+  imageUrl?: string; // Kept for backwards compatibility
+  mediaUrls?: string[];
+  mediaType?: 'IMAGE' | 'VIDEO' | 'CAROUSEL';
   status: string;
   scheduledAt: Timestamp | Date; // Can be either depending on how it's handled
   createdAt: Timestamp | Date;
@@ -123,12 +125,25 @@ export const ScheduledPostsList: React.FC = () => {
             <div key={post.id} className="group bg-white rounded-xl border border-gray-200 hover:shadow-md transition-all overflow-hidden flex flex-col h-full">
               {/* Image Section */}
               <div className="relative h-48 bg-gray-100 overflow-hidden">
-                {post.imageUrl ? (
-                  <img
-                    src={post.imageUrl}
-                    alt="Post visual"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
+                {(post.mediaUrls && post.mediaUrls.length > 0) || post.imageUrl ? (
+                  <>
+                  {post.mediaType === 'VIDEO' ? (
+                     <div className="w-full h-full flex items-center justify-center bg-gray-900">
+                       <Video className="w-12 h-12 text-white/50" />
+                     </div>
+                  ) : (
+                     <img
+                       src={post.mediaUrls && post.mediaUrls.length > 0 ? post.mediaUrls[0] : post.imageUrl}
+                       alt="Post visual"
+                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                     />
+                  )}
+                  {post.mediaType === 'CAROUSEL' || (post.mediaUrls && post.mediaUrls.length > 1) ? (
+                      <div className="absolute bottom-2 left-2 bg-black/50 text-white p-1 rounded-md text-xs font-bold z-10">
+                         1/{post.mediaUrls?.length || 1}
+                      </div>
+                  ) : null}
+                  </>
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
                     <ImageIcon className="w-10 h-10 mb-2 opacity-50" />

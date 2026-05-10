@@ -48,7 +48,9 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
 interface ScheduledPost {
   id: string;
   content: string;
-  imageUrl?: string;
+  imageUrl?: string; // Kept for backwards compatibility
+  mediaUrls?: string[];
+  mediaType?: 'IMAGE' | 'VIDEO' | 'CAROUSEL';
   platforms: string[];
   status: string;
   scheduledAt: Timestamp | Date;
@@ -67,7 +69,8 @@ export const PostingCalendar: React.FC = () => {
 
   // Form state
   const [content, setContent] = useState('');
-  const [mediaUrl, setMediaUrl] = useState('');
+  const [mediaUrlsInput, setMediaUrlsInput] = useState(''); // Allow comma-separated inputs
+  const [mediaType, setMediaType] = useState<'IMAGE' | 'VIDEO' | 'CAROUSEL'>('IMAGE');
   const [platforms, setPlatforms] = useState<string[]>([]);
   const [scheduledDate, setScheduledDate] = useState('');
 
@@ -115,9 +118,18 @@ export const PostingCalendar: React.FC = () => {
     try {
       const scheduledTimestamp = new Date(scheduledDate);
 
+      // Parse media URLs
+      const urls = mediaUrlsInput.split(',').map(u => u.trim()).filter(u => u);
+      let finalMediaType = mediaType;
+      if (urls.length > 1 && mediaType === 'IMAGE') {
+          finalMediaType = 'CAROUSEL';
+      }
+
       const newPost: Partial<ScheduledPost> = {
         content,
-        imageUrl: mediaUrl || undefined,
+        imageUrl: urls.length > 0 ? urls[0] : undefined, // Keep for backward compatibility
+        mediaUrls: urls,
+        mediaType: finalMediaType,
         platforms,
         status: 'PENDING',
         scheduledAt: scheduledTimestamp,
@@ -137,7 +149,8 @@ export const PostingCalendar: React.FC = () => {
       // Reset form and close modal
       setIsModalOpen(false);
       setContent('');
-      setMediaUrl('');
+      setMediaUrlsInput('');
+      setMediaType('IMAGE');
       setPlatforms([]);
       setScheduledDate('');
     } catch (error) {
@@ -219,12 +232,25 @@ export const PostingCalendar: React.FC = () => {
             <div key={post.id} className="group bg-white rounded-xl border border-gray-200 hover:shadow-md transition-all overflow-hidden flex flex-col md:flex-row h-full md:h-40">
               {/* Image Section */}
               <div className="relative w-full md:w-48 h-48 md:h-full bg-gray-100 flex-shrink-0">
-                {post.imageUrl ? (
-                  <img
-                    src={post.imageUrl}
-                    alt="Post visual"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
+                {(post.mediaUrls && post.mediaUrls.length > 0) || post.imageUrl ? (
+                  <>
+                  {post.mediaType === 'VIDEO' ? (
+                     <div className="w-full h-full flex items-center justify-center bg-gray-900">
+                       <Video className="w-12 h-12 text-white/50" />
+                     </div>
+                  ) : (
+                     <img
+                       src={post.mediaUrls && post.mediaUrls.length > 0 ? post.mediaUrls[0] : post.imageUrl}
+                       alt="Post visual"
+                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                     />
+                  )}
+                  {post.mediaType === 'CAROUSEL' || (post.mediaUrls && post.mediaUrls.length > 1) ? (
+                      <div className="absolute top-2 right-2 bg-black/50 text-white p-1 rounded-md text-xs font-bold">
+                         1/{post.mediaUrls?.length || 1}
+                      </div>
+                  ) : null}
+                  </>
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
                     <ImageIcon className="w-10 h-10 mb-2 opacity-50" />
@@ -309,17 +335,42 @@ export const PostingCalendar: React.FC = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Media URL (Opsional)</label>
-                <div className="relative">
+                <div className="relative mb-2">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <Upload className="w-4 h-4 text-gray-400" />
                     </div>
-                    <input
-                        type="url"
-                        value={mediaUrl}
-                        onChange={(e) => setMediaUrl(e.target.value)}
-                        placeholder="https://example.com/image.jpg"
-                        className="w-full pl-9 p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    <textarea
+                        value={mediaUrlsInput}
+                        onChange={(e) => setMediaUrlsInput(e.target.value)}
+                        placeholder="https://example.com/image.jpg, https://example.com/image2.jpg"
+                        className="w-full pl-9 p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 resize-none h-20 text-sm"
                     />
+                </div>
+                <p className="text-xs text-gray-500 mb-2">Pisahkan dengan koma untuk memasukkan lebih dari satu URL (Slide/Carousel).</p>
+
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="mediaType"
+                      value="IMAGE"
+                      checked={mediaType === 'IMAGE' || mediaType === 'CAROUSEL'}
+                      onChange={() => setMediaType('IMAGE')}
+                      className="rounded-full text-emerald-600 focus:ring-emerald-500"
+                    />
+                    <span className="text-sm">Gambar / Carousel</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="mediaType"
+                      value="VIDEO"
+                      checked={mediaType === 'VIDEO'}
+                      onChange={() => setMediaType('VIDEO')}
+                      className="rounded-full text-emerald-600 focus:ring-emerald-500"
+                    />
+                    <span className="text-sm">Video</span>
+                  </label>
                 </div>
               </div>
 
