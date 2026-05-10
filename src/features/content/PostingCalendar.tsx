@@ -16,7 +16,8 @@ import {
   X,
   Upload,
   Trash2,
-  AlertTriangle
+  AlertTriangle,
+  Pencil
 } from 'lucide-react';
 
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
@@ -78,6 +79,7 @@ export const PostingCalendar: React.FC = () => {
   const [mediaType, setMediaType] = useState<'IMAGE' | 'VIDEO' | 'CAROUSEL'>('IMAGE');
   const [platforms, setPlatforms] = useState<string[]>([]);
   const [scheduledDate, setScheduledDate] = useState('');
+  const [editingPostId, setEditingPostId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -208,10 +210,15 @@ export const PostingCalendar: React.FC = () => {
          newPost.branchId = profile.branchId;
       }
 
-      await dbService.addDocument('scheduledPosts', newPost);
+      if (editingPostId) {
+        await dbService.updateDocument('scheduledPosts', editingPostId, newPost);
+      } else {
+        await dbService.addDocument('scheduledPosts', newPost);
+      }
 
       // Reset form and close modal
       setIsModalOpen(false);
+      setEditingPostId(null);
       setContent('');
       setMediaUrlsInput('');
       setSelectedFiles([]);
@@ -223,6 +230,24 @@ export const PostingCalendar: React.FC = () => {
       console.error('Error scheduling post:', error);
       alert('Gagal menjadwalkan postingan.');
     }
+  };
+
+  const handleEditClick = (post: ScheduledPost) => {
+    setEditingPostId(post.id);
+    setContent(post.content);
+    setMediaUrlsInput(post.mediaUrls?.join(', ') || post.imageUrl || '');
+    setPlatforms(post.platforms || []);
+    setMediaType(post.mediaType || 'IMAGE');
+    setSelectedFiles([]);
+    setUploadProgress(0);
+
+    // Format the date to YYYY-MM-DDTHH:mm
+    const d = post.scheduledAt instanceof Timestamp ? post.scheduledAt.toDate() : new Date(post.scheduledAt);
+    const tzoffset = d.getTimezoneOffset() * 60000; // offset in milliseconds
+    const localISOTime = (new Date(d.getTime() - tzoffset)).toISOString().slice(0, 16);
+    setScheduledDate(localISOTime);
+
+    setIsModalOpen(true);
   };
 
   const handleDelete = async (postId: string) => {
@@ -274,7 +299,17 @@ export const PostingCalendar: React.FC = () => {
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-lg font-bold text-gray-900">Jadwal Posting</h2>
         <button
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => {
+            setIsModalOpen(true);
+            setEditingPostId(null);
+            setContent('');
+            setMediaUrlsInput('');
+            setSelectedFiles([]);
+            setUploadProgress(0);
+            setMediaType('IMAGE');
+            setPlatforms([]);
+            setScheduledDate('');
+          }}
           className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors"
         >
           <Plus className="w-4 h-4" />
@@ -351,6 +386,15 @@ export const PostingCalendar: React.FC = () => {
                       }`}>
                           {post.status}
                       </span>
+                      {(post.status === 'PENDING' || post.status === 'FAILED') && (
+                        <button
+                          onClick={() => handleEditClick(post)}
+                          className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                          title="Edit jadwal"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                      )}
                       <button
                         onClick={() => handleDelete(post.id)}
                         className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
@@ -380,8 +424,18 @@ export const PostingCalendar: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
             <div className="flex justify-between items-center p-4 border-b border-gray-100">
-              <h3 className="font-bold text-lg">Jadwalkan Postingan</h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+              <h3 className="font-bold text-lg">{editingPostId ? 'Edit Postingan' : 'Jadwalkan Postingan'}</h3>
+              <button onClick={() => {
+                setIsModalOpen(false);
+                setEditingPostId(null);
+                setContent('');
+                setMediaUrlsInput('');
+                setSelectedFiles([]);
+                setUploadProgress(0);
+                setMediaType('IMAGE');
+                setPlatforms([]);
+                setScheduledDate('');
+              }} className="text-gray-400 hover:text-gray-600">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -555,7 +609,17 @@ export const PostingCalendar: React.FC = () => {
               <div className="pt-4 border-t border-gray-100 flex justify-end gap-3 mt-4">
                 <button
                   type="button"
-                  onClick={() => setIsModalOpen(false)}
+                  onClick={() => {
+                    setIsModalOpen(false);
+                    setEditingPostId(null);
+                    setContent('');
+                    setMediaUrlsInput('');
+                    setSelectedFiles([]);
+                    setUploadProgress(0);
+                    setMediaType('IMAGE');
+                    setPlatforms([]);
+                    setScheduledDate('');
+                  }}
                   disabled={isUploading}
                   className="px-4 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors font-medium"
                 >
