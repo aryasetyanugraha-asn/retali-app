@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { dbService } from '../../services/firebaseService';
 import { useAuth } from '../../context/AuthContext';
-import { where, orderBy, Timestamp } from 'firebase/firestore';
+import { useRole } from '../../context/RoleContext';
+import { useUserProfile } from '../../hooks/useUserProfile';
+import { where, orderBy, Timestamp, QueryConstraint } from 'firebase/firestore';
 import {
   Calendar,
   Clock,
@@ -28,6 +30,8 @@ interface ScheduledPost {
 
 export const ScheduledPostsList: React.FC = () => {
   const { user } = useAuth();
+  const { role } = useRole();
+  const { profile } = useUserProfile();
   const [posts, setPosts] = useState<ScheduledPost[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -36,27 +40,33 @@ export const ScheduledPostsList: React.FC = () => {
 
     setLoading(true);
 
+    let constraints: QueryConstraint[] = [orderBy('createdAt', 'desc')];
+    if (role?.toUpperCase() === 'CABANG' && profile?.branchId) {
+      constraints.push(where('branchId', '==', profile.branchId));
+    } else if (role?.toUpperCase() === 'MITRA' && user.uid) {
+      constraints.push(where('partnerId', '==', user.uid));
+    } else {
+      constraints.push(where('userId', '==', user.uid));
+    }
+
     // Note: This compound query (where + orderBy) might require a Firestore index.
     // If the index is missing, Firestore will throw an error with a link to create it.
     // For now we implement as requested.
     const unsubscribe = dbService.subscribeToCollection(
-      'posts',
+      'scheduledPosts',
       (data) => {
         setPosts(data as ScheduledPost[]);
         setLoading(false);
       },
-      [
-        where('userId', '==', user.uid),
-        orderBy('createdAt', 'desc')
-      ],
+      constraints,
       (error) => {
-        console.error("Error fetching posts:", error);
+        console.error("Error fetching scheduledPosts:", error);
         setLoading(false);
       }
     );
 
     return () => unsubscribe();
-  }, [user]);
+  }, [user, role, profile]);
 
   const formatDate = (date: Timestamp | Date) => {
     if (!date) return 'N/A';

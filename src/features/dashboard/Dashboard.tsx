@@ -86,15 +86,16 @@ export const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [recentActivities, setRecentActivities] = useState<any[]>([]);
 
-  const isProfileIncomplete = role === 'MITRA' && profile?.role === 'MITRA' &&
+  const isProfileIncomplete = role?.toUpperCase() === 'MITRA' && profile?.role?.toUpperCase() === 'MITRA' &&
     (!profile.phoneNumber || !profile.bankDetails?.accountNumber);
 
   useEffect(() => {
     setLoading(true);
     let constraints: QueryConstraint[] = [];
-    if (role === 'CABANG' && profile?.branchId) {
+    if (role?.toUpperCase() === 'CABANG' && profile?.branchId) {
       constraints.push(where('branchId', '==', profile.branchId));
-    } else if (role === 'MITRA' && profile?.uid) {
+    } else if (role?.toUpperCase() === 'MITRA' && profile?.uid) {
+      // Use profile.uid to guarantee user matching from context
       constraints.push(where('partnerId', '==', profile.uid));
     }
 

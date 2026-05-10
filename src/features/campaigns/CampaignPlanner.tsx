@@ -167,10 +167,10 @@ export const CampaignPlanner: React.FC = () => {
           campaignId: campaignId
         };
 
-        if (profile?.role === 'MITRA') {
+        if (profile?.role?.toUpperCase() === 'MITRA') {
            scheduledPostPayload.partnerId = user.uid;
         }
-        if (profile?.role === 'CABANG' || profile?.branchId) {
+        if (profile?.role?.toUpperCase() === 'CABANG' || profile?.branchId) {
            scheduledPostPayload.branchId = profile.branchId;
         }
 

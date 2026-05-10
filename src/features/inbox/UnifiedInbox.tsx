@@ -70,9 +70,9 @@ export const UnifiedInbox: React.FC = () => {
   // Subscribe to conversations
   useEffect(() => {
     let constraints: QueryConstraint[] = [];
-    if (role === 'CABANG' && profile?.branchId) {
+    if (role?.toUpperCase() === 'CABANG' && profile?.branchId) {
       constraints.push(where('branchId', '==', profile.branchId));
-    } else if (role === 'MITRA' && profile?.uid) {
+    } else if (role?.toUpperCase() === 'MITRA' && profile?.uid) {
       constraints.push(where('partnerId', '==', profile.uid));
     }
 
