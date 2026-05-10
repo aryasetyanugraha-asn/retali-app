@@ -296,7 +296,7 @@ export const SocialConnect: React.FC = () => {
                 appId={appId}
                 autoLoad={false}
                 fields="name,email,picture"
-                scope="pages_show_list,pages_manage_posts,pages_manage_metadata,business_management,instagram_basic,instagram_content_publish"
+                scope="pages_show_list,pages_manage_posts,instagram_basic,instagram_content_publish,pages_read_engagement,pages_manage_metadata"
                 callback={responseFacebook}
                 render={(renderProps: any) => (
                   <button
