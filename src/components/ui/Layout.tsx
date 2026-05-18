@@ -15,7 +15,8 @@ import {
   Award,
   Megaphone,
   Menu,
-  X
+  X,
+  Library
 } from 'lucide-react';
 import { useRole, UserRole } from '../../context/RoleContext';
 import { useAuth } from '../../context/AuthContext';
@@ -85,6 +86,9 @@ export const Layout: React.FC = () => {
           {(role === 'PUSAT' || role === 'CABANG') && (
             <NavItem to="/mitra" icon={Briefcase} label="Data Mitra" />
           )}
+          {role === 'PUSAT' && (
+            <NavItem to="/media" icon={Library} label="Media Library" />
+          )}
           <NavItem to="/inbox" icon={MessageSquare} label="Unified Inbox" />
           <NavItem to="/content" icon={PenTool} label="Content AI" />
           <NavItem to="/campaigns" icon={Megaphone} label="Campaign Planner" />
@@ -148,6 +152,7 @@ export const Layout: React.FC = () => {
               {location.pathname === '/settings' && 'Settings & Integrations'}
               {location.pathname === '/mitra' && 'Data Mitra'}
               {location.pathname === '/insights' && 'Market Insights'}
+              {location.pathname === '/media' && 'Media Library'}
             </h2>
           </div>
 

@@ -12,7 +12,10 @@ import {
   Facebook,
   Video,
   Loader2,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Palette,
+  Layers,
+  Wand2
 } from 'lucide-react';
 
 type Topic = 'PROMO' | 'MANASIK' | 'DOA' | 'TIPS';
@@ -29,21 +32,54 @@ export const ContentGenerator: React.FC = () => {
   const [topic, setTopic] = useState<Topic>('PROMO');
   const [platform, setPlatform] = useState<Platform>('INSTAGRAM');
   const [includeImage, setIncludeImage] = useState(false);
+  const [imageMode, setImageMode] = useState<'SCRATCH' | 'LAYOUT' | 'AUTO' | 'VIDEO_WATERMARK'>('AUTO');
+  const [style, setStyle] = useState<'MINIMALIST' | 'BUSY'>('MINIMALIST');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedContent, setGeneratedContent] = useState('');
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+
+  const [assets, setAssets] = useState<any[]>([]);
+  const [selectedBg, setSelectedBg] = useState<string | null>(null);
+  const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
+  const [selectedLogo, setSelectedLogo] = useState<string | null>(null);
+  const [selectedComponents, setSelectedComponents] = useState<string[]>([]);
+  const [brandText, setBrandText] = useState('');
+  const [generatedVideo, setGeneratedVideo] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    const unsubscribe = dbService.subscribeToCollection('media_assets', (data) => {
+      setAssets(data);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const handleGenerate = async () => {
     setIsGenerating(true);
     setGeneratedContent('');
     setGeneratedImage(null);
+    setGeneratedVideo(null);
 
     try {
-      const result: any = await functionsService.generateContent(topic, platform, includeImage);
+      const result: any = await functionsService.generateContent(
+        topic,
+        platform,
+        includeImage,
+        imageMode,
+        style,
+        selectedBg,
+        selectedVideo,
+        selectedLogo,
+        selectedComponents.length > 0 ? selectedComponents : null,
+        brandText
+      );
+
       if (result.success && result.data) {
         setGeneratedContent(result.data);
         if (result.image) {
           setGeneratedImage(result.image);
+        }
+        if (result.videoUrl) {
+          setGeneratedVideo(result.videoUrl);
         }
       } else {
         console.error('AI Generation failed:', result);
@@ -131,9 +167,153 @@ export const ContentGenerator: React.FC = () => {
                 className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
               />
               <label htmlFor="includeImage" className="text-sm font-medium text-gray-700 cursor-pointer">
-                Generate Poster with Logo
+                Include Generated Image
               </label>
             </div>
+
+            {includeImage && (
+              <div className="sm:col-span-2 space-y-4 bg-gray-50 p-4 rounded-xl border border-gray-200 mt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Generation Mode</label>
+                    <div className="flex bg-white p-1 rounded-lg border border-gray-200">
+                      <button
+                        onClick={() => setImageMode('AUTO')}
+                        className={`flex-1 flex flex-col items-center py-2 rounded-md transition-all ${imageMode === 'AUTO' ? 'bg-purple-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50'}`}
+                      >
+                        <Wand2 className="w-4 h-4 mb-1" />
+                        <span className="text-[10px] font-bold">Auto</span>
+                      </button>
+                      <button
+                        onClick={() => setImageMode('SCRATCH')}
+                        className={`flex-1 flex flex-col items-center py-2 rounded-md transition-all ${imageMode === 'SCRATCH' ? 'bg-purple-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50'}`}
+                      >
+                        <ImageIcon className="w-4 h-4 mb-1" />
+                        <span className="text-[10px] font-bold">Scratch</span>
+                      </button>
+                      <button
+                        onClick={() => setImageMode('LAYOUT')}
+                        className={`flex-1 flex flex-col items-center py-2 rounded-md transition-all ${imageMode === 'LAYOUT' ? 'bg-purple-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50'}`}
+                      >
+                        <Layers className="w-4 h-4 mb-1" />
+                        <span className="text-[10px] font-bold">Layout</span>
+                      </button>
+                      <button
+                        onClick={() => setImageMode('VIDEO_WATERMARK')}
+                        className={`flex-1 flex flex-col items-center py-2 rounded-md transition-all ${imageMode === 'VIDEO_WATERMARK' ? 'bg-purple-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50'}`}
+                      >
+                        <Video className="w-4 h-4 mb-1" />
+                        <span className="text-[10px] font-bold">Video</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Design Style</label>
+                    <div className="flex bg-white p-1 rounded-lg border border-gray-200">
+                      <button
+                        onClick={() => setStyle('MINIMALIST')}
+                        className={`flex-1 flex flex-col items-center py-2 rounded-md transition-all ${style === 'MINIMALIST' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50'}`}
+                      >
+                        <Palette className="w-4 h-4 mb-1" />
+                        <span className="text-[10px] font-bold">Minimalist</span>
+                      </button>
+                      <button
+                        onClick={() => setStyle('BUSY')}
+                        className={`flex-1 flex flex-col items-center py-2 rounded-md transition-all ${style === 'BUSY' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50'}`}
+                      >
+                        <Palette className="w-4 h-4 mb-1" />
+                        <span className="text-[10px] font-bold">Busy</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Poster Text</label>
+                    <input
+                      type="text"
+                      placeholder="Overlay text (optional)"
+                      className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-purple-500 outline-none"
+                      value={brandText}
+                      onChange={(e) => setBrandText(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                {(imageMode === 'LAYOUT' || imageMode === 'VIDEO_WATERMARK') && (
+                  <div className="space-y-3 pt-2 border-t border-gray-200">
+                    <label className="block text-xs font-bold text-gray-500 uppercase">Select Assets from Library</label>
+                    <div className="grid grid-cols-2 gap-4">
+                      {imageMode === 'LAYOUT' ? (
+                        <div>
+                          <span className="text-[10px] font-medium text-gray-400 mb-1 block">Background</span>
+                          <select
+                            className="w-full text-xs border border-gray-200 rounded p-1.5"
+                            value={selectedBg || ''}
+                            onChange={(e) => setSelectedBg(e.target.value)}
+                          >
+                            <option value="">Select Background</option>
+                            {assets.filter(a => a.type === 'PHOTO').map(a => (
+                              <option key={a.id} value={a.url}>{a.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                      ) : (
+                        <div>
+                          <span className="text-[10px] font-medium text-gray-400 mb-1 block">Video Clip</span>
+                          <select
+                            className="w-full text-xs border border-gray-200 rounded p-1.5"
+                            value={selectedVideo || ''}
+                            onChange={(e) => setSelectedVideo(e.target.value)}
+                          >
+                            <option value="">Select Video</option>
+                            {assets.filter(a => a.type === 'VIDEO').map(a => (
+                              <option key={a.id} value={a.url}>{a.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                      <div>
+                        <span className="text-[10px] font-medium text-gray-400 mb-1 block">Logo</span>
+                        <select
+                          className="w-full text-xs border border-gray-200 rounded p-1.5"
+                          value={selectedLogo || ''}
+                          onChange={(e) => setSelectedLogo(e.target.value)}
+                        >
+                          <option value="">Select Logo</option>
+                          {assets.filter(a => a.type === 'LOGO').map(a => (
+                            <option key={a.id} value={a.url}>{a.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    {imageMode === 'LAYOUT' && (
+                      <div>
+                        <span className="text-[10px] font-medium text-gray-400 mb-1 block">Design Components (Max 2)</span>
+                        <div className="flex flex-wrap gap-2">
+                           {assets.filter(a => a.type === 'COMPONENT').map(a => (
+                             <button
+                               key={a.id}
+                               onClick={() => {
+                                 if (selectedComponents.includes(a.url)) {
+                                   setSelectedComponents(selectedComponents.filter(c => c !== a.url));
+                                 } else if (selectedComponents.length < 2) {
+                                   setSelectedComponents([...selectedComponents, a.url]);
+                                 }
+                               }}
+                               className={`p-1 border rounded transition-all ${selectedComponents.includes(a.url) ? 'border-purple-600 bg-purple-50' : 'border-gray-200'}`}
+                             >
+                               <img src={a.url} alt={a.name} className="w-8 h-8 object-contain" title={a.name} />
+                             </button>
+                           ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <button
@@ -155,7 +335,7 @@ export const ContentGenerator: React.FC = () => {
           </button>
 
           {/* Generated Result */}
-          {(generatedContent || generatedImage) && (
+          {(generatedContent || generatedImage || generatedVideo) && (
             <div className="mt-6 animate-fade-in">
               <label className="block text-sm font-medium text-gray-700 mb-2">Generated Result</label>
               <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
@@ -176,6 +356,20 @@ export const ContentGenerator: React.FC = () => {
                     <img
                       src={generatedImage}
                       alt="Generated Poster"
+                      className="w-full rounded-lg shadow-sm max-w-sm border border-gray-200"
+                    />
+                  </div>
+                )}
+
+                {generatedVideo && (
+                  <div className="mb-4">
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                      <Video className="w-3 h-3 inline mr-1" />
+                      Processed Video
+                    </label>
+                    <video
+                      src={generatedVideo}
+                      controls
                       className="w-full rounded-lg shadow-sm max-w-sm border border-gray-200"
                     />
                   </div>

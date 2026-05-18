@@ -11,6 +11,7 @@ import { SettingsPage } from './features/settings/SettingsPage';
 import { MitraList } from './features/mitra/MitraList';
 import { MarketInsights } from './features/insights/MarketInsights';
 import { CampaignPlanner } from './features/campaigns/CampaignPlanner';
+import { MediaLibrary } from './features/media/MediaLibrary';
 import { RoleProvider } from './context/RoleContext';
 import { AuthProvider } from './context/AuthContext';
 import { LoginPage } from './features/auth/LoginPage';
@@ -43,6 +44,7 @@ function App() {
               <Route path="settings" element={<SettingsPage />} />
               <Route path="mitra" element={<MitraList />} />
               <Route path="insights" element={<MarketInsights />} />
+              <Route path="media" element={<MediaLibrary />} />
             </Route>
           </Routes>
         </BrowserRouter>
