@@ -1,5 +1,4 @@
 import * as logger from "firebase-functions/logger";
-import ffmpeg from "fluent-ffmpeg";
 import * as admin from "firebase-admin";
 import * as os from "os";
 import * as path from "path";
@@ -10,6 +9,13 @@ import axios from "axios";
  * Adds a logo watermark to a video.
  */
 export async function watermarkVideo(videoUrl: string, logoUrl: string): Promise<string> {
+  const ffmpeg = require("fluent-ffmpeg");
+  const ffmpegStatic = require("ffmpeg-static");
+  const ffprobeStatic = require("ffprobe-static");
+
+  ffmpeg.setFfmpegPath(ffmpegStatic);
+  ffmpeg.setFfprobePath(ffprobeStatic.path);
+
   const tempVideoPath = path.join(os.tmpdir(), `input_${Date.now()}.mp4`);
   const tempLogoPath = path.join(os.tmpdir(), `logo_${Date.now()}.png`);
   const tempOutputPath = path.join(os.tmpdir(), `output_${Date.now()}.mp4`);
@@ -34,7 +40,7 @@ export async function watermarkVideo(videoUrl: string, logoUrl: string): Promise
         ])
         .outputOptions("-pix_fmt yuv420p")
         .on('end', resolve)
-        .on('error', (err) => {
+        .on('error', (err: any) => {
           logger.error("FFmpeg error:", err);
           reject(err);
         })

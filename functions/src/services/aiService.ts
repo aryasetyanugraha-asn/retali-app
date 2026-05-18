@@ -1,20 +1,16 @@
 import { onCall, HttpsError } from "firebase-functions/v2/https";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import * as logger from "firebase-functions/logger";
 import axios from "axios";
-import sharp from "sharp";
 import { generateImageFromScratch, createLayout } from "./imageService";
 import { watermarkVideo } from "./videoService";
-
-// Initialize Gemini
-// Note: Ensure GEMINI_API_KEY is set in Firebase secrets or environment variables
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 /**
  * Downloads an image, resizes it, and overlays a branding logo.
  */
 async function applyBranding(imageUrl: string): Promise<string> {
   try {
+    const sharp = require("sharp");
+
     // 1. Download the background image
     const imageResponse = await axios.get(imageUrl, { responseType: 'arraybuffer' });
     const bgBuffer = Buffer.from(imageResponse.data);
@@ -94,6 +90,8 @@ export const generateAiReply = onCall({
   }
 
   try {
+    const { GoogleGenerativeAI } = require("@google/generative-ai");
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
     const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
 
     const systemPrompt = "Anda adalah seorang Customer Service Senior di sebuah Travel Umrah dan Haji yang profesional. Tugas Anda adalah membalas pesan calon jamaah. Baca riwayat chat ini dan buatkan SATU draf balasan yang sopan, empatik, persuasif, dan mengarahkan jamaah untuk segera melakukan DP (Down Payment) atau konsultasi lebih lanjut. Jangan gunakan bahasa yang kaku seperti robot. Gunakan emoji secukupnya.";
@@ -132,6 +130,8 @@ export const generateCampaignOptions = onCall({
   }
 
   try {
+    const { GoogleGenerativeAI } = require("@google/generative-ai");
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
     const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
     const prompt = `
       Act as a Digital Marketing Director for an Umrah & Hajj Travel Agency in Indonesia.
@@ -228,6 +228,8 @@ export const generateMonthBreakdown = onCall({
   }
 
   try {
+    const { GoogleGenerativeAI } = require("@google/generative-ai");
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
     const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
     const prompt = `
       Act as a Social Media Specialist for an Umrah & Hajj Travel Agency.
@@ -273,8 +275,8 @@ export const generateMonthBreakdown = onCall({
 export const generateAIContent = onCall({
   cors: true,
   region: "asia-southeast2",
-  timeoutSeconds: 60,
-  memory: "1GiB"
+  timeoutSeconds: 120,
+  memory: "2GiB"
 }, async (request) => {
   // 1. Validate Authentication
   if (!request.auth) {
@@ -308,6 +310,8 @@ export const generateAIContent = onCall({
 
   try {
     // 3. Construct the Prompt specifically for Umrah Context
+    const { GoogleGenerativeAI } = require("@google/generative-ai");
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
     const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
 
     const prompt = `
