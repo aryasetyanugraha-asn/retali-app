@@ -1,12 +1,5 @@
 import * as logger from "firebase-functions/logger";
 import axios from "axios";
-import sharp from "sharp";
-import { PredictionServiceClient, helpers } from "@google-cloud/aiplatform";
-
-const clientOptions = {
-  apiEndpoint: "asia-southeast1-aiplatform.googleapis.com",
-};
-const predictionServiceClient = new PredictionServiceClient(clientOptions);
 
 interface LayoutOptions {
   style: 'MINIMALIST' | 'BUSY';
@@ -32,6 +25,12 @@ function getProjectId() {
  * Generates an image from scratch using Imagen on Vertex AI.
  */
 export async function generateImageFromScratch(prompt: string): Promise<string> {
+  const { PredictionServiceClient, helpers } = require("@google-cloud/aiplatform");
+  const clientOptions = {
+    apiEndpoint: "asia-southeast1-aiplatform.googleapis.com",
+  };
+  const predictionServiceClient = new PredictionServiceClient(clientOptions);
+
   const project = getProjectId();
   const location = "asia-southeast1";
   const publisher = "google";
@@ -83,6 +82,7 @@ export async function generateImageFromScratch(prompt: string): Promise<string> 
  */
 export async function createLayout(bgUrl: string, options: LayoutOptions): Promise<string> {
   try {
+    const sharp = require("sharp");
     const width = 1080;
     const height = 1350;
 
