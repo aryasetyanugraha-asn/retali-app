@@ -3,6 +3,8 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import * as logger from "firebase-functions/logger";
 import axios from "axios";
 import sharp from "sharp";
+import { generateImageFromScratch, createLayout } from "./imageService";
+import { watermarkVideo } from "./videoService";
 
 // Initialize Gemini
 // Note: Ensure GEMINI_API_KEY is set in Firebase secrets or environment variables
@@ -283,7 +285,19 @@ export const generateAIContent = onCall({
   }
 
   // 2. Extract Data from Request
-  const { topic, platform, tone = "professional", includeImage = false } = request.data;
+  const {
+    topic,
+    platform,
+    tone = "professional",
+    includeImage = false,
+    imageMode = "AUTO", // AUTO, SCRATCH, LAYOUT, VIDEO_WATERMARK
+    style = "MINIMALIST",
+    bgUrl,
+    videoUrl,
+    logoUrl,
+    componentUrls,
+    brandText
+  } = request.data;
 
   if (!topic || !platform) {
     throw new HttpsError(
@@ -320,10 +334,31 @@ export const generateAIContent = onCall({
 
     if (includeImage) {
       try {
-        // Fetch a random Unsplash image related to "Umrah/Mecca"
-        // Using loremflickr as a reliable placeholder since source.unsplash.com is deprecated, but adding randomization as requested
-        const randomImageUrl = `https://loremflickr.com/1080/1350/mecca,umrah,mosque?random=${Math.random()}`;
-        imageBase64 = await applyBranding(randomImageUrl);
+        if (imageMode === "SCRATCH") {
+            const imagePrompt = `A professional, modern marketing poster for an Umrah and Haji travel agency. Topic: ${topic}. Style: ${style}. High quality, cinematic lighting, 4k.`;
+            imageBase64 = await generateImageFromScratch(imagePrompt);
+        } else if (imageMode === "LAYOUT" && bgUrl) {
+            imageBase64 = await createLayout(bgUrl, {
+                style,
+                topic,
+                brandText: brandText || topic,
+                logoUrl,
+                componentUrls
+            });
+        } else if (imageMode === "VIDEO_WATERMARK" && videoUrl && logoUrl) {
+            // Process video and return URL instead of base64
+            const processedUrl = await watermarkVideo(videoUrl, logoUrl);
+            return {
+                success: true,
+                data: text,
+                videoUrl: processedUrl,
+                timestamp: new Date().toISOString()
+            };
+        } else {
+            // Default/Fallback behavior
+            const randomImageUrl = bgUrl || `https://loremflickr.com/1080/1350/mecca,umrah,mosque?random=${Math.random()}`;
+            imageBase64 = await applyBranding(randomImageUrl);
+        }
       } catch (imgError) {
         logger.error("Failed to generate branded image:", imgError);
         // Continue without image if it fails

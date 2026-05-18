@@ -111,9 +111,31 @@ export const integrationService = {
 const functions = getFunctions(app, "asia-southeast2");
 
 export const functionsService = {
-  generateContent: async (topic: string, platform: string, includeImage: boolean = false) => {
+  generateContent: async (
+    topic: string,
+    platform: string,
+    includeImage: boolean = false,
+    imageMode: string = 'AUTO',
+    style: string = 'MINIMALIST',
+    bgUrl?: string | null,
+    videoUrl?: string | null,
+    logoUrl?: string | null,
+    componentUrls?: string[] | null,
+    brandText?: string | null
+  ) => {
     const generateContentFn = httpsCallable(functions, 'generateContent');
-    const result = await generateContentFn({ topic, platform, includeImage });
+    const result = await generateContentFn({
+      topic,
+      platform,
+      includeImage,
+      imageMode,
+      style,
+      bgUrl,
+      videoUrl,
+      logoUrl,
+      componentUrls,
+      brandText
+    });
     return result.data;
   },
 
