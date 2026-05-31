@@ -37,7 +37,7 @@ export const LoginPage: React.FC = () => {
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
           <img
-            src="https://retali.id/wp-content/uploads/2024/09/Logo-HO-color-1.png"
+            src="https://firebasestorage.googleapis.com/v0/b/umrah-app-f044e.firebasestorage.app/o/media%2Flogos%2F1779085845396_Logo%20Retali.png?alt=media&token=cc8558b7-4060-40b4-b85f-b6a615b9f641"
             alt="Mitra Retali"
             className="h-16 w-auto object-contain"
           />
