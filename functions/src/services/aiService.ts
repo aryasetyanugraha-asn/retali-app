@@ -292,7 +292,7 @@ export const generateAIContent = onCall({
     platform,
     tone = "professional",
     includeImage = false,
-    imageMode = "AUTO", // AUTO, SCRATCH, LAYOUT, VIDEO_WATERMARK
+    generationMode = "AUTO", // AUTO, SCRATCH, LAYOUT, VIDEO_WATERMARK
     style = "MINIMALIST",
     bgUrl,
     videoUrl,
@@ -338,10 +338,10 @@ export const generateAIContent = onCall({
 
     if (includeImage) {
       try {
-        if (imageMode === "SCRATCH") {
+        if (generationMode === "SCRATCH") {
             const imagePrompt = `A professional, modern marketing poster for an Umrah and Haji travel agency. Topic: ${topic}. Style: ${style}. High quality, cinematic lighting, 4k.`;
             imageBase64 = await generateImageFromScratch(imagePrompt);
-        } else if (imageMode === "LAYOUT" && bgUrl) {
+        } else if (generationMode === "LAYOUT" && bgUrl) {
             imageBase64 = await createLayout(bgUrl, {
                 style,
                 topic,
@@ -349,7 +349,7 @@ export const generateAIContent = onCall({
                 logoUrl,
                 componentUrls
             });
-        } else if (imageMode === "VIDEO_WATERMARK" && videoUrl && logoUrl) {
+        } else if (generationMode === "VIDEO_WATERMARK" && videoUrl && logoUrl) {
             // Process video and return URL instead of base64
             const processedUrl = await watermarkVideo(videoUrl, logoUrl);
             return {

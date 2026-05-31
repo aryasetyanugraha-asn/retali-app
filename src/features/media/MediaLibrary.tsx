@@ -36,6 +36,11 @@ export const MediaLibrary: React.FC = () => {
   const [filterType, setFilterType] = useState<AssetType | 'ALL'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Upload modal state
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadCategory, setUploadCategory] = useState<AssetType>('PHOTO');
+
   useEffect(() => {
     const unsubscribe = dbService.subscribeToCollection('media_assets', (data) => {
       setAssets(data as MediaAsset[]);
@@ -45,21 +50,31 @@ export const MediaLibrary: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !user) return;
+    if (!file) return;
 
-    // Determine type based on extension
-    let type: AssetType = 'PHOTO';
-    if (file.type.includes('video')) type = 'VIDEO';
-    else if (file.type.includes('svg') || file.name.endsWith('.png')) {
-        // Simple logic: if it's PNG/SVG, prompt for type or default to component
-        // For this implementation, let's auto-detect PHOTO vs COMPONENT based on a simple check or just default to PHOTO
-        if (file.name.toLowerCase().includes('logo')) type = 'LOGO';
-        else if (file.type.includes('svg')) type = 'COMPONENT';
-    }
+    // Auto-suggest category based on file type
+    let suggestedCategory: AssetType = 'PHOTO';
+    if (file.type.includes('video')) suggestedCategory = 'VIDEO';
+    else if (file.name.toLowerCase().includes('logo')) suggestedCategory = 'LOGO';
+    else if (file.type.includes('svg')) suggestedCategory = 'COMPONENT';
 
+    setUploadFile(file);
+    setUploadCategory(suggestedCategory);
+    setIsUploadModalOpen(true);
+    // Reset input
+    e.target.value = '';
+  };
+
+  const confirmUpload = async () => {
+    if (!uploadFile || !user) return;
+
+    setIsUploadModalOpen(false);
     setIsUploading(true);
+    const type = uploadCategory;
+    const file = uploadFile;
+
     const storageRef = ref(storage, `media/${type.toLowerCase()}s/${Date.now()}_${file.name}`);
     const uploadTask = uploadBytesResumable(storageRef, file);
 
@@ -138,10 +153,73 @@ export const MediaLibrary: React.FC = () => {
               <Plus className="w-4 h-4 mr-2" />
             )}
             Upload Asset
-            <input type="file" className="hidden" onChange={handleUpload} disabled={isUploading} />
+            <input type="file" className="hidden" onChange={handleFileSelect} disabled={isUploading} />
           </label>
         </div>
       </div>
+
+      {/* Upload Modal */}
+      {isUploadModalOpen && uploadFile && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="font-bold text-gray-900">Upload Asset</h3>
+              <button
+                onClick={() => { setIsUploadModalOpen(false); setUploadFile(null); }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                &times;
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Selected File</label>
+                <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-600 truncate">
+                  {uploadFile.name}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {(['PHOTO', 'VIDEO', 'COMPONENT', 'LOGO'] as AssetType[]).map((type) => (
+                    <button
+                      key={type}
+                      onClick={() => setUploadCategory(type)}
+                      className={`px-4 py-3 rounded-lg text-sm font-medium border text-center transition-colors ${
+                        uploadCategory === type
+                        ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                        : 'border-gray-200 hover:border-emerald-200 hover:bg-gray-50 text-gray-600'
+                      }`}
+                    >
+                      {type}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  Select the correct category to ensure it works properly in the AI Content Generator.
+                </p>
+              </div>
+            </div>
+
+            <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-2">
+              <button
+                onClick={() => { setIsUploadModalOpen(false); setUploadFile(null); }}
+                className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmUpload}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors"
+              >
+                Upload File
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isUploading && (
         <div className="bg-white p-4 rounded-lg border border-emerald-100 shadow-sm animate-pulse">
