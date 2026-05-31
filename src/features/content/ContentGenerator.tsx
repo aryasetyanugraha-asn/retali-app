@@ -32,7 +32,7 @@ export const ContentGenerator: React.FC = () => {
   const [topic, setTopic] = useState<Topic>('PROMO');
   const [platform, setPlatform] = useState<Platform>('INSTAGRAM');
   const [includeImage, setIncludeImage] = useState(false);
-  const [imageMode, setImageMode] = useState<'SCRATCH' | 'LAYOUT' | 'AUTO' | 'VIDEO_WATERMARK'>('AUTO');
+  const [generationMode, setGenerationMode] = useState<'SCRATCH' | 'LAYOUT' | 'AUTO' | 'VIDEO_WATERMARK'>('AUTO');
   const [style, setStyle] = useState<'MINIMALIST' | 'BUSY'>('MINIMALIST');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedContent, setGeneratedContent] = useState('');
@@ -64,7 +64,7 @@ export const ContentGenerator: React.FC = () => {
         topic,
         platform,
         includeImage,
-        imageMode,
+        generationMode,
         style,
         selectedBg,
         selectedVideo,
@@ -178,29 +178,29 @@ export const ContentGenerator: React.FC = () => {
                     <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Generation Mode</label>
                     <div className="flex bg-white p-1 rounded-lg border border-gray-200">
                       <button
-                        onClick={() => setImageMode('AUTO')}
-                        className={`flex-1 flex flex-col items-center py-2 rounded-md transition-all ${imageMode === 'AUTO' ? 'bg-purple-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50'}`}
+                        onClick={() => setGenerationMode('AUTO')}
+                        className={`flex-1 flex flex-col items-center py-2 rounded-md transition-all ${generationMode === 'AUTO' ? 'bg-purple-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50'}`}
                       >
                         <Wand2 className="w-4 h-4 mb-1" />
                         <span className="text-[10px] font-bold">Auto</span>
                       </button>
                       <button
-                        onClick={() => setImageMode('SCRATCH')}
-                        className={`flex-1 flex flex-col items-center py-2 rounded-md transition-all ${imageMode === 'SCRATCH' ? 'bg-purple-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50'}`}
+                        onClick={() => setGenerationMode('SCRATCH')}
+                        className={`flex-1 flex flex-col items-center py-2 rounded-md transition-all ${generationMode === 'SCRATCH' ? 'bg-purple-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50'}`}
                       >
                         <ImageIcon className="w-4 h-4 mb-1" />
                         <span className="text-[10px] font-bold">Scratch</span>
                       </button>
                       <button
-                        onClick={() => setImageMode('LAYOUT')}
-                        className={`flex-1 flex flex-col items-center py-2 rounded-md transition-all ${imageMode === 'LAYOUT' ? 'bg-purple-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50'}`}
+                        onClick={() => setGenerationMode('LAYOUT')}
+                        className={`flex-1 flex flex-col items-center py-2 rounded-md transition-all ${generationMode === 'LAYOUT' ? 'bg-purple-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50'}`}
                       >
                         <Layers className="w-4 h-4 mb-1" />
                         <span className="text-[10px] font-bold">Layout</span>
                       </button>
                       <button
-                        onClick={() => setImageMode('VIDEO_WATERMARK')}
-                        className={`flex-1 flex flex-col items-center py-2 rounded-md transition-all ${imageMode === 'VIDEO_WATERMARK' ? 'bg-purple-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50'}`}
+                        onClick={() => setGenerationMode('VIDEO_WATERMARK')}
+                        className={`flex-1 flex flex-col items-center py-2 rounded-md transition-all ${generationMode === 'VIDEO_WATERMARK' ? 'bg-purple-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50'}`}
                       >
                         <Video className="w-4 h-4 mb-1" />
                         <span className="text-[10px] font-bold">Video</span>
@@ -240,11 +240,11 @@ export const ContentGenerator: React.FC = () => {
                   </div>
                 </div>
 
-                {(imageMode === 'LAYOUT' || imageMode === 'VIDEO_WATERMARK') && (
+                {(generationMode === 'LAYOUT' || generationMode === 'VIDEO_WATERMARK') && (
                   <div className="space-y-3 pt-2 border-t border-gray-200">
                     <label className="block text-xs font-bold text-gray-500 uppercase">Select Assets from Library</label>
                     <div className="grid grid-cols-2 gap-4">
-                      {imageMode === 'LAYOUT' ? (
+                      {generationMode === 'LAYOUT' ? (
                         <div>
                           <span className="text-[10px] font-medium text-gray-400 mb-1 block">Background</span>
                           <select
@@ -288,7 +288,7 @@ export const ContentGenerator: React.FC = () => {
                       </div>
                     </div>
 
-                    {imageMode === 'LAYOUT' && (
+                    {generationMode === 'LAYOUT' && (
                       <div>
                         <span className="text-[10px] font-medium text-gray-400 mb-1 block">Design Components (Max 2)</span>
                         <div className="flex flex-wrap gap-2">
