@@ -133,14 +133,24 @@ export async function fetchImageBuffer(url: string): Promise<Buffer> {
  * Composites multiple assets into a final premium poster layout
  * with Smart Placement & Custom Typography.
  */
-export async function createLayout(bgUrl: string, options: LayoutOptions): Promise<string> {
+export async function createLayout(bgInput: string | Buffer, options: LayoutOptions): Promise<string> {
   try {
     const sharp = require("sharp");
     const width = 1080;
     const height = 1350; // Format Portrait Instagram
 
-    // 1. Unduh Background Image
-    const bgBuffer = await fetchImageBuffer(bgUrl);
+    // 1. Siapkan Background Image Buffer
+    let bgBuffer: Buffer;
+    if (Buffer.isBuffer(bgInput)) {
+      bgBuffer = bgInput;
+    } else if (bgInput.startsWith("http")) {
+      // Input is a URL
+      bgBuffer = await fetchImageBuffer(bgInput);
+    } else {
+      // Input is a base64 string (either with or without data uri prefix)
+      const base64Data = bgInput.replace(/^data:image\/\w+;base64,/, "");
+      bgBuffer = Buffer.from(base64Data, 'base64');
+    }
     let compositeArray: any[] = [];
 
     // 2. Setup Font & Teks Bawaan
