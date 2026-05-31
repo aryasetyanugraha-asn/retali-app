@@ -1,3 +1,4 @@
+import * as admin from "firebase-admin";
 import * as logger from "firebase-functions/logger";
 import axios from "axios";
 
@@ -77,6 +78,30 @@ export async function generateImageFromScratch(prompt: string): Promise<string> 
   }
 }
 
+async function fetchImageBuffer(url: string): Promise<Buffer> {
+  try {
+    const parsedUrl = new URL(url);
+    if (parsedUrl.hostname === 'firebasestorage.googleapis.com') {
+      // Extract bucket and file path from URL
+      // Typical URL: https://firebasestorage.googleapis.com/v0/b/bucket-name.appspot.com/o/path%2Fto%2Ffile.jpg?alt=media&token=...
+      const match = parsedUrl.pathname.match(/\/v0\/b\/([^\/]+)\/o\/(.+)/);
+      if (match) {
+        const bucketName = match[1];
+        const filePath = decodeURIComponent(match[2]);
+
+        const [buffer] = await admin.storage().bucket(bucketName).file(filePath).download();
+        return buffer;
+      }
+    }
+  } catch (error) {
+    logger.warn(`Failed to parse URL or download from storage: ${url}`, error);
+    // Fallback to axios if parsing or storage download fails
+  }
+
+  const response = await axios.get(url, { responseType: 'arraybuffer' });
+  return Buffer.from(response.data);
+}
+
 /**
  * Composites multiple assets into a final poster layout.
  */
@@ -87,15 +112,14 @@ export async function createLayout(bgUrl: string, options: LayoutOptions): Promi
     const height = 1350;
 
     // 1. Load Background
-    const bgResponse = await axios.get(bgUrl, { responseType: 'arraybuffer' });
-    const bgBuffer = Buffer.from(bgResponse.data);
+    const bgBuffer = await fetchImageBuffer(bgUrl);
 
     let compositeArray: any[] = [];
 
     // 2. Add Logo (Top Left)
     if (options.logoUrl) {
-      const logoResponse = await axios.get(options.logoUrl, { responseType: 'arraybuffer' });
-      const logoResized = await sharp(Buffer.from(logoResponse.data))
+      const logoBuffer = await fetchImageBuffer(options.logoUrl);
+      const logoResized = await sharp(logoBuffer)
         .resize({ width: 220 })
         .toBuffer();
 
@@ -115,8 +139,8 @@ export async function createLayout(bgUrl: string, options: LayoutOptions): Promi
       ];
 
       for (let i = 0; i < Math.min(options.componentUrls.length, positions.length); i++) {
-        const compResponse = await axios.get(options.componentUrls[i], { responseType: 'arraybuffer' });
-        const compResized = await sharp(Buffer.from(compResponse.data))
+        const compBuffer = await fetchImageBuffer(options.componentUrls[i]);
+        const compResized = await sharp(compBuffer)
           .resize({ width: 300 })
           .toBuffer();
 
