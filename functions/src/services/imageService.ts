@@ -28,12 +28,12 @@ function getProjectId() {
 export async function generateImageFromScratch(prompt: string): Promise<string> {
   const { PredictionServiceClient, helpers } = require("@google-cloud/aiplatform");
   const clientOptions = {
-    apiEndpoint: "asia-southeast1-aiplatform.googleapis.com",
+    apiEndpoint: "us-central1-aiplatform.googleapis.com",
   };
   const predictionServiceClient = new PredictionServiceClient(clientOptions);
 
   const project = getProjectId();
-  const location = "asia-southeast1";
+  const location = "us-central1";
   const publisher = "google";
   const model = "imagen-3.0-generate-001";
 
@@ -70,7 +70,31 @@ export async function generateImageFromScratch(prompt: string): Promise<string> 
     }
 
     const predictionValue: any = predictions[0];
-    const bytesBase64 = predictionValue.structValue.fields.bytesBase64.stringValue;
+    logger.debug("Raw Prediction Value:", JSON.stringify(predictionValue));
+
+    // Safely extract bytesBase64
+    let bytesBase64: string | undefined;
+
+    // Try different possible paths depending on how the SDK unwrapped it
+    if (predictionValue.structValue?.fields?.bytesBase64?.stringValue) {
+      bytesBase64 = predictionValue.structValue.fields.bytesBase64.stringValue;
+    } else if (predictionValue.bytesBase64) {
+      bytesBase64 = predictionValue.bytesBase64;
+    } else if (typeof predictionValue === 'string') {
+      // Sometimes the prediction itself is just the base64 string
+      bytesBase64 = predictionValue;
+    } else if (predictionValue.structValue?.fields?.bytesBase64) {
+      // If it's a direct string value inside fields
+      bytesBase64 = typeof predictionValue.structValue.fields.bytesBase64 === 'string'
+        ? predictionValue.structValue.fields.bytesBase64
+        : undefined;
+    }
+
+    if (!bytesBase64) {
+      logger.error("Could not extract bytesBase64 from prediction. Prediction structure:", JSON.stringify(predictionValue));
+      throw new Error("Failed to parse image data from Imagen response");
+    }
+
     return `data:image/jpeg;base64,${bytesBase64}`;
   } catch (error) {
     logger.error("Error generating image from Imagen:", error);
@@ -78,7 +102,7 @@ export async function generateImageFromScratch(prompt: string): Promise<string> 
   }
 }
 
-async function fetchImageBuffer(url: string): Promise<Buffer> {
+export async function fetchImageBuffer(url: string): Promise<Buffer> {
   try {
     const parsedUrl = new URL(url);
     if (parsedUrl.hostname === 'firebasestorage.googleapis.com') {

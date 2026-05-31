@@ -65,7 +65,7 @@ export const Layout: React.FC = () => {
         <div className="p-6 flex items-center justify-between space-x-2 border-b border-gray-100">
           <div className="flex items-center space-x-2">
             <img
-              src="https://retali.id/wp-content/uploads/2024/09/Logo-HO-color-1.png"
+              src="https://firebasestorage.googleapis.com/v0/b/umrah-app-f044e.firebasestorage.app/o/media%2Flogos%2F1779085845396_Logo%20Retali.png?alt=media&token=cc8558b7-4060-40b4-b85f-b6a615b9f641"
               alt="Mitra Retali"
               className="w-8 h-8 object-contain"
             />

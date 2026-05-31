@@ -1,7 +1,6 @@
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
-import axios from "axios";
-import { generateImageFromScratch, createLayout } from "./imageService";
+import { generateImageFromScratch, createLayout, fetchImageBuffer } from "./imageService";
 import { watermarkVideo } from "./videoService";
 
 /**
@@ -12,13 +11,11 @@ async function applyBranding(imageUrl: string): Promise<string> {
     const sharp = require("sharp");
 
     // 1. Download the background image
-    const imageResponse = await axios.get(imageUrl, { responseType: 'arraybuffer' });
-    const bgBuffer = Buffer.from(imageResponse.data);
+    const bgBuffer = await fetchImageBuffer(imageUrl);
 
     // 2. Download the logo
-    const logoUrl = 'https://retali.id/wp-content/uploads/2024/09/Logo-HO-color-1.png';
-    const logoResponse = await axios.get(logoUrl, { responseType: 'arraybuffer' });
-    const logoBuffer = Buffer.from(logoResponse.data);
+    const logoUrl = 'https://firebasestorage.googleapis.com/v0/b/umrah-app-f044e.firebasestorage.app/o/media%2Flogos%2F1779085845396_Logo%20Retali.png?alt=media&token=cc8558b7-4060-40b4-b85f-b6a615b9f641';
+    const logoBuffer = await fetchImageBuffer(logoUrl);
 
     // 3. Process with Sharp
     const width = 1080;
