@@ -336,7 +336,7 @@ export const generateAIContent = onCall({
     if (includeImage) {
       try {
         if (generationMode === "SCRATCH") {
-            const imagePrompt = `A professional, modern marketing poster for an Umrah and Haji travel agency. Topic: ${topic}. Style: ${style}. High quality, cinematic lighting, 4k.`;
+            const imagePrompt = `Create a highly detailed, premium marketing poster for an Umrah and Hajj travel agency. Topic: ${topic}. Style: ${style}, elegant, high-end, incorporating subtle modern futuristic aesthetics, sleek 3D elements, glassmorphism accents, cinematic lighting, 8k resolution, hyper-realistic, photorealistic, visually stunning Islamic design. Ensure there is clean, negative space for text overlay.`;
             imageBase64 = await generateImageFromScratch(imagePrompt);
         } else if (generationMode === "LAYOUT" && bgUrl) {
             imageBase64 = await createLayout(bgUrl, {
