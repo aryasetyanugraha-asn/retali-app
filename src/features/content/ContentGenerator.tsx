@@ -290,7 +290,7 @@ export const ContentGenerator: React.FC = () => {
 
                     {generationMode === 'LAYOUT' && (
                       <div>
-                        <span className="text-[10px] font-medium text-gray-400 mb-1 block">Design Components (Max 2)</span>
+                        <span className="text-[10px] font-medium text-gray-400 mb-1 block">Design Components</span>
                         <div className="flex flex-wrap gap-2">
                            {assets.filter(a => a.type === 'COMPONENT').map(a => (
                              <button
@@ -298,7 +298,7 @@ export const ContentGenerator: React.FC = () => {
                                onClick={() => {
                                  if (selectedComponents.includes(a.url)) {
                                    setSelectedComponents(selectedComponents.filter(c => c !== a.url));
-                                 } else if (selectedComponents.length < 2) {
+                                 } else {
                                    setSelectedComponents([...selectedComponents, a.url]);
                                  }
                                }}
