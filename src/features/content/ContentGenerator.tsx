@@ -14,7 +14,6 @@ import {
   Image as ImageIcon,
   Palette,
   Layers,
-  Wand2,
   Download,
   X
 } from 'lucide-react';
@@ -34,7 +33,7 @@ export const ContentGenerator: React.FC = () => {
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const [platform, setPlatform] = useState<Platform>('INSTAGRAM');
   const [includeImage, setIncludeImage] = useState(false);
-  const [generationMode, setGenerationMode] = useState<'SCRATCH' | 'LAYOUT' | 'AUTO' | 'VIDEO_WATERMARK'>('AUTO');
+  const [generationMode, setGenerationMode] = useState<'SCRATCH' | 'LAYOUT' | 'VIDEO_WATERMARK'>('SCRATCH');
   const [style, setStyle] = useState<'MINIMALIST' | 'BUSY'>('MINIMALIST');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedContent, setGeneratedContent] = useState('');
@@ -197,13 +196,6 @@ export const ContentGenerator: React.FC = () => {
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Generation Mode</label>
                     <div className="flex bg-white p-1 rounded-lg border border-gray-200">
-                      <button
-                        onClick={() => setGenerationMode('AUTO')}
-                        className={`flex-1 flex flex-col items-center py-2 rounded-md transition-all ${generationMode === 'AUTO' ? 'bg-purple-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50'}`}
-                      >
-                        <Wand2 className="w-4 h-4 mb-1" />
-                        <span className="text-[10px] font-bold">Auto</span>
-                      </button>
                       <button
                         onClick={() => setGenerationMode('SCRATCH')}
                         className={`flex-1 flex flex-col items-center py-2 rounded-md transition-all ${generationMode === 'SCRATCH' ? 'bg-purple-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50'}`}

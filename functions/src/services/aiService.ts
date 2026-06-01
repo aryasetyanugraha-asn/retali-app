@@ -228,7 +228,7 @@ export const generateAIContent = onCall({
     platform,
     tone = "professional",
     includeImage = false,
-    generationMode = "AUTO", // AUTO, SCRATCH, LAYOUT, VIDEO_WATERMARK
+    generationMode = "SCRATCH", // SCRATCH, LAYOUT, VIDEO_WATERMARK
     style = "MINIMALIST",
     bgUrl,
     videoUrl,
@@ -303,18 +303,7 @@ export const generateAIContent = onCall({
                 timestamp: new Date().toISOString()
             };
         } else {
-            // Default/Fallback behavior (AUTO Mode)
-            // Generate a real base image using AI instead of loremflickr
-            const autoImagePrompt = `Create a highly detailed, premium marketing poster for an Umrah and Hajj travel agency. Topic: ${topic}. Style: MINIMALIST, elegant, high-end, incorporating subtle modern futuristic aesthetics, sleek 3D elements, glassmorphism accents, cinematic lighting, 8k resolution, hyper-realistic, photorealistic, visually stunning Islamic design. Ensure there is clean, negative space for text overlay.`;
-            const rawBase64 = await generateImageFromScratch(autoImagePrompt);
-
-            imageBase64 = await createLayout(rawBase64, {
-                style: "MINIMALIST",
-                topic,
-                brandText: brandText || topic,
-                logoUrl,
-                componentUrls
-            });
+             logger.warn(`Invalid or unsupported generationMode: ${generationMode} or missing required parameters.`);
         }
       } catch (imgError) {
         logger.error("Failed to generate branded image:", imgError);
