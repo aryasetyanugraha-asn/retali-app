@@ -31,20 +31,66 @@ export const Layout: React.FC = () => {
 
   const isActive = (path: string) => location.pathname === path;
 
-  const NavItem = ({ to, icon: Icon, label }: { to: string, icon: any, label: string }) => (
-    <Link
-      to={to}
-      onClick={() => setIsMobileMenuOpen(false)}
-      className={`flex items-center px-6 py-3 text-sm font-medium transition-colors ${
-        isActive(to)
-          ? 'bg-emerald-50 text-emerald-600 border-r-4 border-emerald-600'
-          : 'text-gray-600 hover:bg-emerald-50 hover:text-gray-900'
-      }`}
-    >
-      <Icon className={`w-5 h-5 mr-3 ${isActive(to) ? 'text-emerald-600' : 'text-gray-400'}`} />
-      {label}
-    </Link>
-  );
+  type ThemeColor = 'emerald' | 'blue' | 'purple' | 'orange' | 'gray';
+
+  const NavItem = ({ to, icon: Icon, label, theme = 'emerald' }: { to: string, icon: any, label: string, theme?: ThemeColor }) => {
+    const activeStyles: Record<ThemeColor, string> = {
+      emerald: 'bg-emerald-50 text-emerald-600 border-r-4 border-emerald-600',
+      blue: 'bg-blue-50 text-blue-600 border-r-4 border-blue-600',
+      purple: 'bg-purple-50 text-purple-600 border-r-4 border-purple-600',
+      orange: 'bg-orange-50 text-orange-600 border-r-4 border-orange-600',
+      gray: 'bg-gray-100 text-gray-800 border-r-4 border-gray-600'
+    };
+
+    const hoverStyles: Record<ThemeColor, string> = {
+      emerald: 'hover:bg-emerald-50',
+      blue: 'hover:bg-blue-50',
+      purple: 'hover:bg-purple-50',
+      orange: 'hover:bg-orange-50',
+      gray: 'hover:bg-gray-100'
+    };
+
+    const iconActiveStyles: Record<ThemeColor, string> = {
+      emerald: 'text-emerald-600',
+      blue: 'text-blue-600',
+      purple: 'text-purple-600',
+      orange: 'text-orange-600',
+      gray: 'text-gray-600'
+    };
+
+    return (
+      <Link
+        to={to}
+        onClick={() => setIsMobileMenuOpen(false)}
+        className={`flex items-center px-6 py-3 text-sm font-medium transition-colors ${
+          isActive(to)
+            ? activeStyles[theme]
+            : `text-gray-600 hover:text-gray-900 ${hoverStyles[theme]}`
+        }`}
+      >
+        <Icon className={`w-5 h-5 mr-3 ${isActive(to) ? iconActiveStyles[theme] : 'text-gray-400'}`} />
+        {label}
+      </Link>
+    );
+  };
+
+  const NavGroupHeader = ({ title, theme = 'gray' }: { title: string, theme?: ThemeColor }) => {
+    const textStyles: Record<ThemeColor, string> = {
+      emerald: 'text-emerald-500',
+      blue: 'text-blue-500',
+      purple: 'text-purple-500',
+      orange: 'text-orange-500',
+      gray: 'text-gray-400'
+    };
+
+    return (
+      <div className="px-6 py-2 mt-4 mb-1">
+        <h3 className={`text-xs font-bold uppercase tracking-wider ${textStyles[theme]}`}>
+          {title}
+        </h3>
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 flex font-sans">
@@ -79,23 +125,45 @@ export const Layout: React.FC = () => {
           </button>
         </div>
 
-        <nav className="mt-6 space-y-1 flex-1 overflow-y-auto">
-          <NavItem to="/dashboard" icon={LayoutDashboard} label="Dashboard" />
-          <NavItem to="/leads" icon={Users} label="Leads CRM" />
-          <NavItem to="/jamaah-aktif" icon={Award} label="Jamaah Aktif" />
-          {(role === 'PUSAT' || role === 'CABANG') && (
-            <NavItem to="/mitra" icon={Briefcase} label="Data Mitra" />
-          )}
-          {role === 'PUSAT' && (
-            <NavItem to="/media" icon={Library} label="Media Library" />
-          )}
-          <NavItem to="/inbox" icon={MessageSquare} label="Unified Inbox" />
-          <NavItem to="/content" icon={PenTool} label="Content AI" />
-          <NavItem to="/campaigns" icon={Megaphone} label="Campaign Planner" />
-          <NavItem to="/schedule" icon={Calendar} label="Jadwal Posting" />
-          <NavItem to="/virtuallive" icon={Video} label="Virtual Live" />
-          <NavItem to="/insights" icon={Search} label="Market Insights" />
-          <NavItem to="/settings" icon={Settings} label="Settings" />
+        <nav className="mt-4 pb-4 space-y-0.5 flex-1 overflow-y-auto">
+          {/* Overview Group */}
+          <NavGroupHeader title="Overview" theme="emerald" />
+          <NavItem to="/dashboard" icon={LayoutDashboard} label="Dashboard" theme="emerald" />
+
+          {/* Sales & Partners Group */}
+          <div className="mt-4 border-t border-gray-100 pt-2">
+            <NavGroupHeader title="Sales & Partners" theme="blue" />
+            <NavItem to="/leads" icon={Users} label="Leads CRM" theme="blue" />
+            <NavItem to="/jamaah-aktif" icon={Award} label="Jamaah Aktif" theme="blue" />
+            {(role === 'PUSAT' || role === 'CABANG') && (
+              <NavItem to="/mitra" icon={Briefcase} label="Data Mitra" theme="blue" />
+            )}
+          </div>
+
+          {/* Marketing & Content Group */}
+          <div className="mt-4 border-t border-gray-100 pt-2">
+            <NavGroupHeader title="Marketing & Content" theme="purple" />
+            <NavItem to="/content" icon={PenTool} label="Content AI" theme="purple" />
+            <NavItem to="/campaigns" icon={Megaphone} label="Campaign Planner" theme="purple" />
+            <NavItem to="/schedule" icon={Calendar} label="Jadwal Posting" theme="purple" />
+            {role === 'PUSAT' && (
+              <NavItem to="/media" icon={Library} label="Media Library" theme="purple" />
+            )}
+            <NavItem to="/virtuallive" icon={Video} label="Virtual Live" theme="purple" />
+          </div>
+
+          {/* Communication & Research Group */}
+          <div className="mt-4 border-t border-gray-100 pt-2">
+            <NavGroupHeader title="Comm & Research" theme="orange" />
+            <NavItem to="/inbox" icon={MessageSquare} label="Unified Inbox" theme="orange" />
+            <NavItem to="/insights" icon={Search} label="Market Insights" theme="orange" />
+          </div>
+
+          {/* Settings Group */}
+          <div className="mt-4 border-t border-gray-100 pt-2">
+            <NavGroupHeader title="System" theme="gray" />
+            <NavItem to="/settings" icon={Settings} label="Settings" theme="gray" />
+          </div>
         </nav>
 
         <div className="p-4 border-t border-gray-100">
