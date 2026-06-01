@@ -121,7 +121,8 @@ export const functionsService = {
     videoUrl?: string | null,
     logoUrl?: string | null,
     componentUrls?: string[] | null,
-    brandText?: string | null
+    brandText?: string | null,
+    animateWithAI?: boolean
   ) => {
     const generateContentFn = httpsCallable(functions, 'generateContent');
     const result = await generateContentFn({
@@ -134,7 +135,8 @@ export const functionsService = {
       videoUrl,
       logoUrl,
       componentUrls,
-      brandText
+      brandText,
+      animateWithAI
     });
     return result.data;
   },

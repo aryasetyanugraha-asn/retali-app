@@ -34,6 +34,7 @@ export const ContentGenerator: React.FC = () => {
   const [platform, setPlatform] = useState<Platform>('INSTAGRAM');
   const [includeImage, setIncludeImage] = useState(false);
   const [generationMode, setGenerationMode] = useState<'SCRATCH' | 'LAYOUT' | 'VIDEO_WATERMARK'>('SCRATCH');
+  const [animateWithAI, setAnimateWithAI] = useState(false);
   const [style, setStyle] = useState<'MINIMALIST' | 'BUSY'>('MINIMALIST');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedContent, setGeneratedContent] = useState('');
@@ -71,7 +72,8 @@ export const ContentGenerator: React.FC = () => {
         selectedVideo,
         selectedLogo,
         selectedComponents.length > 0 ? selectedComponents : null,
-        brandText
+        brandText,
+        animateWithAI
       );
 
       if (result.success && result.data) {
@@ -196,13 +198,29 @@ export const ContentGenerator: React.FC = () => {
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Generation Mode</label>
                     <div className="flex bg-white p-1 rounded-lg border border-gray-200">
-                      <button
-                        onClick={() => setGenerationMode('SCRATCH')}
-                        className={`flex-1 flex flex-col items-center py-2 rounded-md transition-all ${generationMode === 'SCRATCH' ? 'bg-purple-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50'}`}
-                      >
-                        <ImageIcon className="w-4 h-4 mb-1" />
-                        <span className="text-[10px] font-bold">Scratch</span>
-                      </button>
+                      <div className="flex-1 flex flex-col items-center">
+                        <button
+                          onClick={() => setGenerationMode('SCRATCH')}
+                          className={`w-full flex flex-col items-center py-2 rounded-md transition-all ${generationMode === 'SCRATCH' ? 'bg-purple-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50'}`}
+                        >
+                          <ImageIcon className="w-4 h-4 mb-1" />
+                          <span className="text-[10px] font-bold">Scratch</span>
+                        </button>
+                        {generationMode === 'SCRATCH' && (
+                          <div className="mt-2 flex items-center space-x-1.5 bg-gray-50 px-2 py-1 rounded border border-gray-100">
+                            <input
+                              type="checkbox"
+                              id="animateWithAI"
+                              checked={animateWithAI}
+                              onChange={(e) => setAnimateWithAI(e.target.checked)}
+                              className="w-3 h-3 text-purple-600 rounded border-gray-300 focus:ring-purple-500"
+                            />
+                            <label htmlFor="animateWithAI" className="text-[9px] font-medium text-gray-700 whitespace-nowrap cursor-pointer">
+                              ✨ Animate with AI Video
+                            </label>
+                          </div>
+                        )}
+                      </div>
                       <button
                         onClick={() => setGenerationMode('LAYOUT')}
                         className={`flex-1 flex flex-col items-center py-2 rounded-md transition-all ${generationMode === 'LAYOUT' ? 'bg-purple-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50'}`}

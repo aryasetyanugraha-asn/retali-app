@@ -1,7 +1,7 @@
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { generateImageFromScratch, createLayout } from "./imageService";
-import { watermarkVideo } from "./videoService";
+import { generateVideoFromImage, watermarkVideo } from "./videoService";
 
 export const generateAiReply = onCall({
   cors: true,
@@ -228,6 +228,7 @@ export const generateAIContent = onCall({
     platform,
     tone = "professional",
     includeImage = false,
+    animateWithAI = false,
     generationMode = "SCRATCH", // SCRATCH, LAYOUT, VIDEO_WATERMARK
     style = "MINIMALIST",
     bgUrl,
@@ -278,6 +279,19 @@ export const generateAIContent = onCall({
             const imagePrompt = `Create a highly detailed, premium marketing poster for an Umrah and Hajj travel agency. Topic: ${topic}. Style: ${style}, elegant, high-end, incorporating subtle modern futuristic aesthetics, sleek 3D elements, glassmorphism accents, cinematic lighting, 8k resolution, hyper-realistic, photorealistic, visually stunning Islamic design. Ensure there is clean, negative space for text overlay.`;
             const rawBase64 = await generateImageFromScratch(imagePrompt);
 
+            if (animateWithAI) {
+                // Generate Video from Image Buffer
+                const imageBuffer = Buffer.from(rawBase64, 'base64');
+                const veoLocalVideoPath = await generateVideoFromImage(imageBuffer);
+                const finalUrl = await watermarkVideo(veoLocalVideoPath);
+                return {
+                    success: true,
+                    data: text,
+                    videoUrl: finalUrl,
+                    timestamp: new Date().toISOString()
+                };
+            }
+
             imageBase64 = await createLayout(rawBase64, {
                 style,
                 topic,
@@ -293,30 +307,25 @@ export const generateAIContent = onCall({
                 logoUrl,
                 componentUrls
             });
-        } else if (generationMode === "VIDEO_WATERMARK" && videoUrl && logoUrl) {
-            // Process video and return URL instead of base64
-            const processedUrl = await watermarkVideo(videoUrl, logoUrl);
+        } else if (generationMode === "VIDEO_WATERMARK" && videoUrl) {
+            const processedUrl = await watermarkVideo(videoUrl);
             return {
-                success: true,
-                data: text,
-                videoUrl: processedUrl,
-                timestamp: new Date().toISOString()
+              success: true,
+              data: text,
+              videoUrl: processedUrl,
+              timestamp: new Date().toISOString()
             };
-        } else {
-             logger.warn(`Invalid or unsupported generationMode: ${generationMode} or missing required parameters.`);
         }
-      } catch (imgError) {
-        logger.error("Failed to generate branded image:", imgError);
-        // Continue without image if it fails
+      } catch (error) {
+        logger.error("Error generating/processing media:", error);
       }
     }
 
-    logger.info(`Content generated for user ${request.auth.uid}`, { topic, platform, hasImage: !!imageBase64 });
-
+    logger.info("Content generated successfully");
     return {
       success: true,
       data: text,
-      image: imageBase64,
+      image: imageBase64 ? imageBase64 : null,
       timestamp: new Date().toISOString()
     };
 
