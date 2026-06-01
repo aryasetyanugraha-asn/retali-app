@@ -1,68 +1,7 @@
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
-import { generateImageFromScratch, createLayout, fetchImageBuffer } from "./imageService";
+import { generateImageFromScratch, createLayout } from "./imageService";
 import { watermarkVideo } from "./videoService";
-
-/**
- * Downloads an image, resizes it, and overlays a branding logo.
- */
-async function applyBranding(imageUrl: string): Promise<string> {
-  try {
-    const sharp = require("sharp");
-
-    // 1. Download the background image
-    const bgBuffer = await fetchImageBuffer(imageUrl);
-
-    // 2. Download the logo
-    const logoUrl = 'https://firebasestorage.googleapis.com/v0/b/umrah-app-f044e.firebasestorage.app/o/media%2Flogos%2F1779085845396_Logo%20Retali.png?alt=media&token=cc8558b7-4060-40b4-b85f-b6a615b9f641';
-    const logoBuffer = await fetchImageBuffer(logoUrl);
-
-    // 3. Process with Sharp
-    const width = 1080;
-    const height = 1350;
-    const padding = 50;
-    const logoTargetWidth = 250;
-
-    // Resize background to 1080x1350 (Instagram Portrait)
-    // Force 'cover' to ensure image fills the canvas and removes borders
-    const background = sharp(bgBuffer)
-      .resize({
-        width: width,
-        height: height,
-        fit: 'cover',
-        position: 'center'
-      });
-
-    // Resize logo
-    const logoResized = await sharp(logoBuffer)
-      .resize({ width: logoTargetWidth })
-      .toBuffer();
-
-    // Get logo dimensions
-    const logoMeta = await sharp(logoResized).metadata();
-    const logoHeight = logoMeta.height || 100;
-
-    // Calculate position (Bottom Right)
-    const top = height - logoHeight - padding;
-    const left = width - logoTargetWidth - padding;
-
-    // Composite logo onto background
-    const finalBuffer = await background
-      .composite([{
-        input: logoResized,
-        top: Math.round(top),
-        left: Math.round(left)
-      }])
-      .toFormat('jpeg')
-      .toBuffer();
-
-    // Return as Base64 string
-    return `data:image/jpeg;base64,${finalBuffer.toString('base64')}`;
-  } catch (error) {
-    logger.error("Error in applyBranding:", error);
-    throw error;
-  }
-}
 
 export const generateAiReply = onCall({
   cors: true,
@@ -364,9 +303,18 @@ export const generateAIContent = onCall({
                 timestamp: new Date().toISOString()
             };
         } else {
-            // Default/Fallback behavior
-            const randomImageUrl = bgUrl || `https://loremflickr.com/1080/1350/mecca,umrah,mosque?random=${Math.random()}`;
-            imageBase64 = await applyBranding(randomImageUrl);
+            // Default/Fallback behavior (AUTO Mode)
+            // Generate a real base image using AI instead of loremflickr
+            const autoImagePrompt = `Create a highly detailed, premium marketing poster for an Umrah and Hajj travel agency. Topic: ${topic}. Style: MINIMALIST, elegant, high-end, incorporating subtle modern futuristic aesthetics, sleek 3D elements, glassmorphism accents, cinematic lighting, 8k resolution, hyper-realistic, photorealistic, visually stunning Islamic design. Ensure there is clean, negative space for text overlay.`;
+            const rawBase64 = await generateImageFromScratch(autoImagePrompt);
+
+            imageBase64 = await createLayout(rawBase64, {
+                style: "MINIMALIST",
+                topic,
+                brandText: brandText || topic,
+                logoUrl,
+                componentUrls
+            });
         }
       } catch (imgError) {
         logger.error("Failed to generate branded image:", imgError);

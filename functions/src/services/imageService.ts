@@ -154,35 +154,33 @@ export async function createLayout(bgInput: string | Buffer, options: LayoutOpti
     let compositeArray: any[] = [];
 
     // 2. Setup Font & Teks Bawaan
-    const title = options.brandText ? options.brandText.toUpperCase() : "PROMO SPESIAL";
+    const title = options.brandText ? options.brandText.toUpperCase() : "";
     const website = "www.retali.id";
 
-    // 3. Membangun Template SVG Premium (Montserrat & Roboto)
+    // 3. Membangun Template SVG Premium (Minimalis, Tidak Terlalu Ramai)
     const svgOverlay = `
     <svg width="${width}" height="${height}">
       <defs>
-        <!-- Efek gradasi gelap ke transparan untuk menonjolkan teks -->
+        <!-- Efek gradasi gelap halus dari bawah untuk menonjolkan teks dan komponen -->
         <linearGradient id="glassGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" style="stop-color:rgba(15, 23, 42, 0.0);" />
-          <stop offset="50%" style="stop-color:rgba(15, 23, 42, 0.75);" />
-          <stop offset="100%" style="stop-color:rgba(15, 23, 42, 1);" />
+          <stop offset="0%" style="stop-color:rgba(0, 0, 0, 0.0);" />
+          <stop offset="40%" style="stop-color:rgba(0, 0, 0, 0.0);" />
+          <stop offset="100%" style="stop-color:rgba(0, 0, 0, 0.7);" />
         </linearGradient>
       </defs>
 
       <style>
-        /* Inject Font Montserrat dan Roboto */
-        .title { fill: #FFFFFF; font-size: 68px; font-weight: 900; font-family: 'Montserrat', sans-serif; letter-spacing: 2px; }
-        .subtitle { fill: #E2E8F0; font-size: 26px; font-weight: 700; font-family: 'Roboto', sans-serif; letter-spacing: 4px; }
-        .website { fill: #38BDF8; font-size: 24px; font-weight: bold; font-family: 'Montserrat', sans-serif; letter-spacing: 2px; }
+        /* Inject Font Montserrat dan Roboto - Ukuran lebih proporsional */
+        .title { fill: #FFFFFF; font-size: 52px; font-weight: 800; font-family: 'Montserrat', sans-serif; letter-spacing: 1px; }
+        .website { fill: #E2E8F0; font-size: 20px; font-weight: 500; font-family: 'Roboto', sans-serif; letter-spacing: 1.5px; opacity: 0.9; }
       </style>
 
       <!-- Panel Bayangan Bawah -->
-      <rect x="0" y="${height - 650}" width="${width}" height="650" fill="url(#glassGradient)" />
+      <rect x="0" y="0" width="${width}" height="${height}" fill="url(#glassGradient)" />
 
-      <!-- Penempatan Teks (Diangkat ke atas agar tidak menabrak logo lembaga) -->
-      <text x="50%" y="${height - 380}" text-anchor="middle" class="subtitle">PERJALANAN SUCI BERSAMA</text>
-      <text x="50%" y="${height - 300}" text-anchor="middle" class="title">${title}</text>
-      <text x="50%" y="${height - 240}" text-anchor="middle" class="website">🌍 ${website}</text>
+      <!-- Penempatan Teks (Lebih minimalis) -->
+      ${title ? `<text x="50%" y="${height - 220}" text-anchor="middle" class="title">${title}</text>` : ''}
+      <text x="50%" y="${height - 180}" text-anchor="middle" class="website">🌍 ${website}</text>
     </svg>`;
 
     compositeArray.push({
@@ -191,54 +189,65 @@ export async function createLayout(bgInput: string | Buffer, options: LayoutOpti
       left: 0
     });
 
-    // 4. Posisi Logo Retali (Tengah Atas)
+    // 4. Posisi Logo Retali (Pojok Kanan Atas)
     if (options.logoUrl) {
-      const logoBuffer = await fetchImageBuffer(options.logoUrl);
-      const logoResized = await sharp(logoBuffer)
-        .resize({ width: 250, withoutEnlargement: true })
-        .toBuffer();
+      try {
+        const logoBuffer = await fetchImageBuffer(options.logoUrl);
+        const logoResized = await sharp(logoBuffer)
+          .resize({ width: 220, withoutEnlargement: true })
+          .toBuffer();
 
-      compositeArray.push({
-        input: logoResized,
-        top: 50,
-        left: Math.round((width - 250) / 2),
-      });
+        compositeArray.push({
+          input: logoResized,
+          top: 60,
+          left: width - 220 - 60, // Kanan Atas
+        });
+      } catch (e) {
+        logger.error("Gagal memuat logo:", e);
+      }
     }
 
-    // 5. Smart Placement Komponen Spesifik
+    // 5. Smart Placement Komponen Spesifik (Algoritma Baru yang Dinamis dan Tidak Menumpuk)
     if (options.componentUrls && options.componentUrls.length > 0) {
-      for (const url of options.componentUrls) {
-        const compBuffer = await fetchImageBuffer(url);
+      for (let i = 0; i < options.componentUrls.length; i++) {
+        const url = options.componentUrls[i];
+        try {
+          const compBuffer = await fetchImageBuffer(url);
+          const urlLower = url.toLowerCase();
 
-        // Membaca nama file dari URL untuk menentukan posisi
-        const urlLower = url.toLowerCase();
-
-        if (urlLower.includes('seat')) {
-          // Badge Seat Terbatas -> Pojok Kanan Atas
-          const compResized = await sharp(compBuffer).resize({ width: 220 }).toBuffer();
-          compositeArray.push({ input: compResized, top: 40, left: 820 });
-
-        } else if (urlLower.includes('tagline')) {
-          // Umrah Hemat Ibadah Nikmat -> Tengah Atas (Di bawah logo)
-          const compResized = await sharp(compBuffer).resize({ width: 700 }).toBuffer();
-          compositeArray.push({ input: compResized, top: 220, left: Math.round((width - 700) / 2) });
-
-        } else if (urlLower.includes('lembaga')) {
-          // Logo-logo Lembaga (5 Pasti, dll) -> Bawah (Di atas info bar)
-          const compResized = await sharp(compBuffer).resize({ width: 950 }).toBuffer();
-          compositeArray.push({ input: compResized, top: 1120, left: Math.round((width - 950) / 2) });
-
-        } else if (urlLower.includes('info') || urlLower.includes('footer')) {
-          // Barisan Info Harga/Jadwal -> Footer absolut di paling bawah
-          const compResized = await sharp(compBuffer).resize({ width: width }).toBuffer();
-          const meta = await sharp(compResized).metadata();
-          const compHeight = meta.height || 80;
-          compositeArray.push({ input: compResized, top: height - compHeight, left: 0 });
-
-        } else {
-          // Fallback jika komponen lain diunggah (Pojok Kiri Atas)
-          const compResized = await sharp(compBuffer).resize({ width: 180 }).toBuffer();
-          compositeArray.push({ input: compResized, top: 50, left: 50 });
+          if (urlLower.includes('lembaga')) {
+            // Lembaga -> Pojok Kiri Atas (Jangan terlalu kecil)
+            const compResized = await sharp(compBuffer).resize({ width: 450 }).toBuffer();
+            compositeArray.push({ input: compResized, top: 60, left: 60 });
+          } else if (urlLower.includes('tagline')) {
+            // Tagline -> Tengah Atas (Di bawah margin atas)
+            const compResized = await sharp(compBuffer).resize({ width: 600 }).toBuffer();
+            compositeArray.push({ input: compResized, top: 220, left: Math.round((width - 600) / 2) });
+          } else if (urlLower.includes('seat') || urlLower.includes('sisa')) {
+            // Badge Seat Terbatas -> Tengah Kanan (Agar tidak tabrakan dengan logo di atas)
+            const compResized = await sharp(compBuffer).resize({ width: 250 }).toBuffer();
+            compositeArray.push({ input: compResized, top: 380, left: width - 250 - 60 });
+          } else if (urlLower.includes('ustadz')) {
+            // Ustadz -> Bawah Tengah (Cukup besar agar terbaca)
+            const compResized = await sharp(compBuffer).resize({ width: 850 }).toBuffer();
+            const meta = await sharp(compResized).metadata();
+            const compHeight = meta.height || 300;
+            // Tempatkan di atas area footer teks
+            compositeArray.push({ input: compResized, top: height - compHeight - 250, left: Math.round((width - 850) / 2) });
+          } else if (urlLower.includes('info') || urlLower.includes('footer')) {
+            // Barisan Info Harga/Jadwal -> Footer paling bawah
+            const compResized = await sharp(compBuffer).resize({ width: width }).toBuffer();
+            const meta = await sharp(compResized).metadata();
+            const compHeight = meta.height || 120;
+            compositeArray.push({ input: compResized, top: height - compHeight, left: 0 });
+          } else {
+            // Fallback (Grid Placement di kiri tengah)
+            const compResized = await sharp(compBuffer).resize({ width: 200 }).toBuffer();
+            const verticalOffset = 300 + (i * 220); // Susun ke bawah
+            compositeArray.push({ input: compResized, top: Math.min(verticalOffset, height - 300), left: 60 });
+          }
+        } catch (e) {
+          logger.error(`Gagal memuat komponen ${url}:`, e);
         }
       }
     }
