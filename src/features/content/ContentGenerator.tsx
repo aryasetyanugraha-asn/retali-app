@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { functionsService, dbService } from '../../services/firebaseService';
-import { useAuth } from '../../context/AuthContext';
 import { PostingCalendar } from "./PostingCalendar";
 import {
   Sparkles,
@@ -15,7 +14,9 @@ import {
   Image as ImageIcon,
   Palette,
   Layers,
-  Wand2
+  Wand2,
+  Download,
+  X
 } from 'lucide-react';
 
 type Topic = 'PROMO' | 'MANASIK' | 'DOA' | 'TIPS';
@@ -28,8 +29,9 @@ const MOCK_SCHEDULED_POSTS = [
 ];
 
 export const ContentGenerator: React.FC = () => {
-  const { user } = useAuth();
   const [topic, setTopic] = useState<Topic>('PROMO');
+  const [isCopied, setIsCopied] = useState(false);
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const [platform, setPlatform] = useState<Platform>('INSTAGRAM');
   const [includeImage, setIncludeImage] = useState(false);
   const [generationMode, setGenerationMode] = useState<'SCRATCH' | 'LAYOUT' | 'AUTO' | 'VIDEO_WATERMARK'>('AUTO');
@@ -91,30 +93,48 @@ export const ContentGenerator: React.FC = () => {
     }
   };
 
-  const handleSchedule = async () => {
-    if (!generatedContent || !user) return;
+  const handleSchedule = () => {
+    if (!generatedContent && !generatedImage && !generatedVideo) return;
 
+    const event = new CustomEvent('open-schedule-modal', {
+      detail: {
+        content: generatedContent || '',
+        mediaUrls: generatedImage || generatedVideo ? [generatedImage || generatedVideo] : [],
+        mediaType: generatedVideo ? 'VIDEO' : (generatedImage ? 'IMAGE' : 'IMAGE')
+      }
+    });
+    window.dispatchEvent(event);
+  };
+
+  const handleCopy = () => {
+    if (generatedContent) {
+      navigator.clipboard.writeText(generatedContent);
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
+    }
+  };
+
+  const handleDownloadImage = async (imageUrl: string) => {
     try {
-      const payload = {
-        userId: user.uid,
-        topic,
-        platform,
-        content: generatedContent,
-        imageUrl: generatedImage,
-        status: 'SCHEDULED',
-        scheduledAt: new Date(),
-        createdAt: new Date()
-      };
-
-      await dbService.addDocument('posts', payload);
-      alert('Post scheduled successfully!');
-
-      // Reset form
-      setGeneratedContent('');
-      setGeneratedImage(null);
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `generated-poster-${new Date().getTime()}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Error scheduling post:', error);
-      alert('Failed to schedule post. Please try again.');
+      console.error('Error downloading image:', error);
+      const link = document.createElement('a');
+      link.href = imageUrl;
+      link.target = '_blank';
+      link.download = `generated-poster-${new Date().getTime()}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     }
   };
 
@@ -353,11 +373,19 @@ export const ContentGenerator: React.FC = () => {
                       <ImageIcon className="w-3 h-3 inline mr-1" />
                       Generated Poster
                     </label>
-                    <img
-                      src={generatedImage}
-                      alt="Generated Poster"
-                      className="w-full rounded-lg shadow-sm max-w-sm border border-gray-200"
-                    />
+                    <div
+                      className="relative group cursor-pointer w-full max-w-sm rounded-lg overflow-hidden border border-gray-200"
+                      onClick={() => setLightboxImage(generatedImage)}
+                    >
+                      <img
+                        src={generatedImage}
+                        alt="Generated Poster"
+                        className="w-full shadow-sm"
+                      />
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                        <span className="text-white text-sm font-medium">Click to view Full Screen</span>
+                      </div>
+                    </div>
                   </div>
                 )}
 
@@ -376,9 +404,12 @@ export const ContentGenerator: React.FC = () => {
                 )}
 
                 <div className="flex items-center justify-end gap-2 mt-2 pt-3 border-t border-gray-200">
-                  <button className="flex items-center px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-200 rounded-md transition-colors">
-                    <Copy className="w-3.5 h-3.5 mr-1.5" />
-                    Copy
+                  <button
+                    onClick={handleCopy}
+                    className="flex items-center px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-200 rounded-md transition-colors"
+                  >
+                    {isCopied ? <CheckCircle className="w-3.5 h-3.5 mr-1.5 text-green-600" /> : <Copy className="w-3.5 h-3.5 mr-1.5" />}
+                    {isCopied ? 'Copied!' : 'Copy'}
                   </button>
                   <button
                     onClick={handleSchedule}
@@ -443,6 +474,35 @@ export const ContentGenerator: React.FC = () => {
       </div>
 
       <PostingCalendar />
+
+      {/* Lightbox Modal */}
+      {lightboxImage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4">
+          <div className="relative max-w-5xl w-full h-full flex flex-col items-center justify-center">
+            <div className="absolute top-4 right-4 flex gap-4">
+              <button
+                onClick={() => handleDownloadImage(lightboxImage)}
+                className="p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors"
+                title="Download Image"
+              >
+                <Download className="w-6 h-6" />
+              </button>
+              <button
+                onClick={() => setLightboxImage(null)}
+                className="p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors"
+                title="Close Lightbox"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <img
+              src={lightboxImage}
+              alt="Generated Poster Full"
+              className="max-w-full max-h-[90vh] object-contain rounded-lg"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
