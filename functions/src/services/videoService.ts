@@ -12,13 +12,6 @@ import { GoogleGenAI } from '@google/genai';
  */
 export async function generateVideoFromImage(imageBuffer: Buffer): Promise<string> {
   const uuid = Date.now().toString() + Math.random().toString(36).substring(7);
-
-  // Step A: Save image locally to /tmp and upload via GenAI File API
-  const localImagePath = path.join(os.tmpdir(), `input_${uuid}.jpg`);
-  await fs.promises.writeFile(localImagePath, imageBuffer);
-  logger.info(`Saved input image locally: ${localImagePath}`);
-
-  let uploadResult: any = null;
   let localVideoPath = "";
 
   try {
@@ -28,25 +21,22 @@ export async function generateVideoFromImage(imageBuffer: Buffer): Promise<strin
 
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-    logger.info("Uploading image via GenAI File API...");
-    uploadResult = await ai.files.upload({
-      file: localImagePath,
-      config: { mimeType: "image/jpeg" }
-    });
-    logger.info(`Uploaded image successfully, file URI: ${uploadResult.uri}`);
-
-    // Step B: Use GoogleGenAI to generate video
+    // Step A: Use GoogleGenAI to generate video directly from base64
     const prompt = "Cinematic slow motion pan. The scene comes alive with subtle, elegant movement. High-end commercial style, photorealistic, 4k resolution, smooth and peaceful atmosphere. no sound";
 
     logger.info("Calling Veo 3.1 model...");
     let operation: any = await ai.models.generateVideos({
       model: 'veo-3.1-fast-generate-preview',
-      prompt: prompt,
-      image: uploadResult,
+      source: {
+        prompt: prompt,
+        image: {
+          mimeType: 'image/jpeg',
+          bytesBase64Encoded: imageBuffer.toString('base64')
+        } as any
+      },
       config: {
         numberOfVideos: 1,
         aspectRatio: '9:16',
-        personGeneration: "DONT_ALLOW",
         resolution: '720p',
         durationSeconds: 8
       } as any
@@ -101,25 +91,7 @@ export async function generateVideoFromImage(imageBuffer: Buffer): Promise<strin
     logger.info(`Video downloaded successfully to ${localVideoPath}`);
 
   } finally {
-    // Step D: Cleanup local input file and remote uploaded file
-    try {
-      if (fs.existsSync(localImagePath)) {
-        await fs.promises.unlink(localImagePath);
-        logger.info(`Deleted local input image: ${localImagePath}`);
-      }
-    } catch (e) {
-      logger.error(`Failed to delete local image ${localImagePath}`, e);
-    }
-
-    if (uploadResult && uploadResult.name) {
-      try {
-        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-        await ai.files.delete({ name: uploadResult.name });
-        logger.info(`Deleted remote uploaded file: ${uploadResult.name}`);
-      } catch (e) {
-        logger.error(`Failed to delete remote file ${uploadResult.name}`, e);
-      }
-    }
+    // No local input file or remote file cleanup needed anymore
   }
 
   return localVideoPath;
