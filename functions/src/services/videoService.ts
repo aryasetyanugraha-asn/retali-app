@@ -27,13 +27,11 @@ export async function generateVideoFromImage(imageBuffer: Buffer): Promise<strin
     logger.info("Calling Veo 3.1 model...");
     let operation: any = await ai.models.generateVideos({
       model: 'veo-3.1-fast-generate-preview',
-      source: {
-        prompt: prompt,
-        image: {
-          mimeType: 'image/jpeg',
-          bytesBase64Encoded: imageBuffer.toString('base64')
-        } as any
-      },
+      prompt: prompt,
+      image: {
+        mimeType: 'image/jpeg',
+        bytesBase64Encoded: imageBuffer.toString('base64')
+      } as any,
       config: {
         numberOfVideos: 1,
         aspectRatio: '9:16',
