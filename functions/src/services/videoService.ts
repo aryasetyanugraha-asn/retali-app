@@ -29,7 +29,7 @@ export async function generateVideoFromImage(imageBuffer: Buffer): Promise<strin
       model: 'veo-3.1-fast-generate-preview',
       prompt: prompt,
       image: {
-        mimeType: 'image/jpeg',
+        mimeType: 'image/png',
         imageBytes: imageBuffer.toString('base64')
       } as any,
       config: {
