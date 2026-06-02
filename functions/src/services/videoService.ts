@@ -30,7 +30,7 @@ export async function generateVideoFromImage(imageBuffer: Buffer): Promise<strin
       prompt: prompt,
       image: {
         mimeType: 'image/jpeg',
-        bytesBase64Encoded: imageBuffer.toString('base64')
+        imageBytes: imageBuffer.toString('base64')
       } as any,
       config: {
         numberOfVideos: 1,
