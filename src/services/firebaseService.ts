@@ -124,7 +124,7 @@ export const functionsService = {
     brandText?: string | null,
     animateWithAI?: boolean
   ) => {
-    const generateContentFn = httpsCallable(functions, 'generateContent');
+    const generateContentFn = httpsCallable(functions, 'generateContent', { timeout: 540000 });
     const result = await generateContentFn({
       topic,
       platform,

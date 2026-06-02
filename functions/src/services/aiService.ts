@@ -211,7 +211,7 @@ export const generateMonthBreakdown = onCall({
 export const generateAIContent = onCall({
   cors: true,
   region: "asia-southeast2",
-  timeoutSeconds: 120,
+  timeoutSeconds: 540,
   memory: "2GiB"
 }, async (request) => {
   // 1. Validate Authentication
