@@ -281,7 +281,8 @@ export const generateAIContent = onCall({
 
             if (animateWithAI) {
                 // Generate Video from Image Buffer
-                const imageBuffer = Buffer.from(rawBase64, 'base64');
+                const cleanBase64 = rawBase64.replace(/^data:image\/\w+;base64,/, "");
+                const imageBuffer = Buffer.from(cleanBase64, 'base64');
                 const veoLocalVideoPath = await generateVideoFromImage(imageBuffer);
                 const finalUrl = await watermarkVideo(veoLocalVideoPath);
                 return {
