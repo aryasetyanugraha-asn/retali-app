@@ -69,7 +69,11 @@ export async function generateVideoFromImage(imageBuffer: Buffer): Promise<strin
          const fileKey = keyParts.join('/');
          await admin.storage().bucket(bucketName).file(fileKey).download({ destination: localVideoPath });
       } else {
-         const res = await axios.get(videoObj.uri, { responseType: 'stream' });
+         const downloadUrl = videoObj.uri.includes('?')
+           ? `${videoObj.uri}&key=${process.env.GEMINI_API_KEY}`
+           : `${videoObj.uri}?key=${process.env.GEMINI_API_KEY}`;
+
+         const res = await axios.get(downloadUrl, { responseType: 'stream' });
          await new Promise((resolve, reject) => {
              res.data.pipe(fs.createWriteStream(localVideoPath))
                 .on('finish', resolve)
