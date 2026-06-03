@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { functionsService, dbService } from '../../services/firebaseService';
 import { PostingCalendar } from "./PostingCalendar";
 import {
@@ -15,7 +15,9 @@ import {
   Palette,
   Layers,
   Download,
-  X
+  X,
+  AlertTriangle,
+  Timer
 } from 'lucide-react';
 
 type Topic = 'PROMO' | 'MANASIK' | 'DOA' | 'TIPS';
@@ -37,6 +39,10 @@ export const ContentGenerator: React.FC = () => {
   const [animateWithAI, setAnimateWithAI] = useState(false);
   const [style, setStyle] = useState<'MINIMALIST' | 'BUSY'>('MINIMALIST');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generationError, setGenerationError] = useState<string | null>(null);
+  const [elapsedTimeMs, setElapsedTimeMs] = useState(0);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
   const [generatedContent, setGeneratedContent] = useState('');
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
 
@@ -48,15 +54,51 @@ export const ContentGenerator: React.FC = () => {
   const [brandText, setBrandText] = useState('');
   const [generatedVideo, setGeneratedVideo] = useState<string | null>(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const unsubscribe = dbService.subscribeToCollection('media_assets', (data) => {
       setAssets(data);
     });
     return () => unsubscribe();
   }, []);
 
+  useEffect(() => {
+    if (isGenerating) {
+      setElapsedTimeMs(0);
+      const startTime = Date.now();
+      timerRef.current = setInterval(() => {
+        setElapsedTimeMs(Date.now() - startTime);
+      }, 10); // Update every 10ms for smooth millisecond display
+    } else {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    }
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, [isGenerating]);
+
+  const formatElapsedTime = (ms: number) => {
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    const milliseconds = ms % 1000;
+
+    const padMs = (num: number) => {
+      if (num < 10) return `00${num}`;
+      if (num < 100) return `0${num}`;
+      return num.toString().slice(0, 3);
+    };
+
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${padMs(milliseconds)}`;
+  };
+
   const handleGenerate = async () => {
     setIsGenerating(true);
+    setGenerationError(null);
     setGeneratedContent('');
     setGeneratedImage(null);
     setGeneratedVideo(null);
@@ -86,9 +128,11 @@ export const ContentGenerator: React.FC = () => {
         }
       } else {
         console.error('AI Generation failed:', result);
+        setGenerationError(result.error || result.message || 'Unknown generation error occurred.');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error generating content:', error);
+      setGenerationError(error?.message || 'An unexpected error occurred during generation.');
     } finally {
       setIsGenerating(false);
     }
@@ -363,6 +407,23 @@ export const ContentGenerator: React.FC = () => {
               </>
             )}
           </button>
+
+          {isGenerating && (
+            <div className="mt-3 flex items-center justify-center text-sm font-medium text-gray-500 bg-gray-50 py-2 rounded-lg border border-gray-100 animate-pulse">
+              <Timer className="w-4 h-4 mr-2 text-purple-500" />
+              Elapsed Time: <span className="ml-1 font-mono text-purple-600">{formatElapsedTime(elapsedTimeMs)}</span>
+            </div>
+          )}
+
+          {generationError && !isGenerating && (
+            <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-4 flex items-start animate-fade-in">
+              <AlertTriangle className="w-5 h-5 text-red-500 mr-3 shrink-0 mt-0.5" />
+              <div>
+                <h4 className="text-sm font-semibold text-red-800">Generation Failed</h4>
+                <p className="text-xs text-red-600 mt-1">{generationError}</p>
+              </div>
+            </div>
+          )}
 
           {/* Generated Result */}
           {(generatedContent || generatedImage || generatedVideo) && (
