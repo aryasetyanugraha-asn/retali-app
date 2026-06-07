@@ -74,3 +74,7 @@ export const helloWorld = onRequest({ region: "asia-southeast2" }, (request, res
 // Data Crawler
 export const scheduledDataCrawler = scheduledDataCrawlerService;
 export const manualDataCrawl = manualDataCrawlService;
+
+// Layout Service
+import { saveLayoutContent as saveLayoutContentService } from "./services/layoutService";
+export const saveLayoutContent = saveLayoutContentService;

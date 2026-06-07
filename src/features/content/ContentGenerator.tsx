@@ -556,26 +556,11 @@ export const ContentGenerator: React.FC = () => {
                         setShowLayoutEditor(false);
 
                         try {
-                            const result: any = await functionsService.generateContent(
-                                topic,
-                                platform,
-                                true, // includeImage
-                                'LAYOUT', // trigger layout logic in backend
-                                style,
-                                base64Image, // pass base64 image as bgUrl
-                                selectedVideo,
-                                selectedLogo,
-                                null,
-                                brandText,
-                                false, // animateWithAI
-                                null
-                            );
+                            const result: any = await functionsService.saveLayoutContent(base64Image);
 
-                            if (result.success && result.data) {
-                                setGeneratedContent(result.data);
-                                if (result.image) {
-                                    setGeneratedImage(result.image);
-                                }
+                            if (result.success && result.imageUrl) {
+                                setGeneratedImage(result.imageUrl);
+                                setGeneratedContent("Layout saved successfully without AI generation.");
                             } else {
                                 setGenerationError(result.error || result.message || 'Unknown error');
                             }

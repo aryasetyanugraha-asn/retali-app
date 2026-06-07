@@ -265,3 +265,52 @@ export async function createLayout(bgInput: string | Buffer, options: LayoutOpti
     throw error;
   }
 }
+
+import { v4 as uuidv4 } from "uuid";
+
+/**
+ * Stamps the mandatory www.retali.id watermark on a base64 image and uploads it to Firebase Storage.
+ */
+export async function applyWatermarkAndUpload(base64Input: string): Promise<string> {
+  try {
+    const sharp = require("sharp");
+
+    const base64Data = base64Input.replace(/^data:image\/\w+;base64,/, "");
+    const bgBuffer = Buffer.from(base64Data, 'base64');
+
+    // Get image dimensions to place the watermark at the bottom
+    const metadata = await sharp(bgBuffer).metadata();
+    const width = metadata.width || 1080;
+    const height = metadata.height || 1350;
+
+    const website = "www.retali.id";
+    const svgOverlay = `
+    <svg width="${width}" height="${height}">
+      <style>
+        .website { fill: #E2E8F0; font-size: 20px; font-weight: 500; font-family: 'Roboto', sans-serif; letter-spacing: 1.5px; opacity: 0.9; }
+      </style>
+      <text x="50%" y="${height - 20}" text-anchor="middle" class="website">🌍 ${website}</text>
+    </svg>`;
+
+    const finalBuffer = await sharp(bgBuffer)
+      .composite([{ input: Buffer.from(svgOverlay), top: 0, left: 0 }])
+      .toFormat('jpeg', { quality: 95 })
+      .toBuffer();
+
+    const bucket = admin.storage().bucket();
+    const uuid = uuidv4();
+    const destination = `media/layouts/${uuid}.jpg`;
+
+    await bucket.file(destination).save(finalBuffer, {
+      metadata: { contentType: 'image/jpeg' },
+    });
+
+    const file = bucket.file(destination);
+    await file.makePublic();
+
+    return `https://storage.googleapis.com/${bucket.name}/${destination}`;
+  } catch (error) {
+    logger.error("Error applying watermark and uploading:", error);
+    throw error;
+  }
+}
