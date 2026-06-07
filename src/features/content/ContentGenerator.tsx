@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { functionsService, dbService } from '../../services/firebaseService';
 import { PostingCalendar } from "./PostingCalendar";
+import { LayoutEditor } from './LayoutEditor';
 import {
   Sparkles,
   Calendar,
@@ -47,13 +48,13 @@ export const ContentGenerator: React.FC = () => {
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
 
   const [assets, setAssets] = useState<any[]>([]);
-  const [selectedBg, setSelectedBg] = useState<string | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
   const [selectedLogo, setSelectedLogo] = useState<string | null>(null);
-  const [selectedComponents, setSelectedComponents] = useState<string[]>([]);
   const [brandText, setBrandText] = useState('');
   const [generatedVideo, setGeneratedVideo] = useState<string | null>(null);
   const [customImagePrompt, setCustomImagePrompt] = useState('');
+
+  const [showLayoutEditor, setShowLayoutEditor] = useState(false);
 
   useEffect(() => {
     const unsubscribe = dbService.subscribeToCollection('media_assets', (data) => {
@@ -98,6 +99,11 @@ export const ContentGenerator: React.FC = () => {
   };
 
   const handleGenerate = async () => {
+    if (generationMode === 'LAYOUT') {
+        setShowLayoutEditor(true);
+        return;
+    }
+
     setIsGenerating(true);
     setGenerationError(null);
     setGeneratedContent('');
@@ -111,10 +117,10 @@ export const ContentGenerator: React.FC = () => {
         includeImage,
         generationMode,
         style,
-        selectedBg,
+        null,
         selectedVideo,
         selectedLogo,
-        selectedComponents.length > 0 ? selectedComponents : null,
+        null,
         brandText,
         animateWithAI,
         customImagePrompt || null
@@ -252,11 +258,14 @@ export const ContentGenerator: React.FC = () => {
                         <span className="text-[10px] font-bold">Scratch</span>
                       </button>
                       <button
-                        onClick={() => setGenerationMode('LAYOUT')}
+                        onClick={() => {
+                            setGenerationMode('LAYOUT');
+                            setShowLayoutEditor(true);
+                        }}
                         className={`flex-1 flex flex-col items-center py-2 rounded-md transition-all ${generationMode === 'LAYOUT' ? 'bg-purple-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50'}`}
                       >
                         <Layers className="w-4 h-4 mb-1" />
-                        <span className="text-[10px] font-bold">Layout</span>
+                        <span className="text-[10px] font-bold">Layout Editor</span>
                       </button>
                       <button
                         onClick={() => setGenerationMode('VIDEO_WATERMARK')}
@@ -326,25 +335,10 @@ export const ContentGenerator: React.FC = () => {
                   </div>
                 )}
 
-                {(generationMode === 'LAYOUT' || generationMode === 'VIDEO_WATERMARK') && (
+                {generationMode === 'VIDEO_WATERMARK' && (
                   <div className="space-y-3 pt-2 border-t border-gray-200">
                     <label className="block text-xs font-bold text-gray-500 uppercase">Select Assets from Library</label>
                     <div className="grid grid-cols-2 gap-4">
-                      {generationMode === 'LAYOUT' ? (
-                        <div>
-                          <span className="text-[10px] font-medium text-gray-400 mb-1 block">Background</span>
-                          <select
-                            className="w-full text-xs border border-gray-200 rounded p-1.5"
-                            value={selectedBg || ''}
-                            onChange={(e) => setSelectedBg(e.target.value)}
-                          >
-                            <option value="">Select Background</option>
-                            {assets.filter(a => a.type === 'PHOTO').map(a => (
-                              <option key={a.id} value={a.url}>{a.name}</option>
-                            ))}
-                          </select>
-                        </div>
-                      ) : (
                         <div>
                           <span className="text-[10px] font-medium text-gray-400 mb-1 block">Video Clip</span>
                           <select
@@ -358,7 +352,6 @@ export const ContentGenerator: React.FC = () => {
                             ))}
                           </select>
                         </div>
-                      )}
                       <div>
                         <span className="text-[10px] font-medium text-gray-400 mb-1 block">Logo</span>
                         <select
@@ -373,52 +366,31 @@ export const ContentGenerator: React.FC = () => {
                         </select>
                       </div>
                     </div>
-
-                    {generationMode === 'LAYOUT' && (
-                      <div>
-                        <span className="text-[10px] font-medium text-gray-400 mb-1 block">Design Components</span>
-                        <div className="flex flex-wrap gap-2">
-                           {assets.filter(a => a.type === 'COMPONENT').map(a => (
-                             <button
-                               key={a.id}
-                               onClick={() => {
-                                 if (selectedComponents.includes(a.url)) {
-                                   setSelectedComponents(selectedComponents.filter(c => c !== a.url));
-                                 } else {
-                                   setSelectedComponents([...selectedComponents, a.url]);
-                                 }
-                               }}
-                               className={`p-1 border rounded transition-all ${selectedComponents.includes(a.url) ? 'border-purple-600 bg-purple-50' : 'border-gray-200'}`}
-                             >
-                               <img src={a.url} alt={a.name} className="w-8 h-8 object-contain" title={a.name} />
-                             </button>
-                           ))}
-                        </div>
-                      </div>
-                    )}
                   </div>
                 )}
               </div>
             )}
           </div>
 
-          <button
-            onClick={handleGenerate}
-            disabled={isGenerating}
-            className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-all transform active:scale-95 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isGenerating ? (
-              <>
-                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                Generating Content...
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-5 h-5 mr-2" />
-                Generate with AI
-              </>
-            )}
-          </button>
+          {generationMode !== 'LAYOUT' && (
+              <button
+                onClick={handleGenerate}
+                disabled={isGenerating}
+                className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-all transform active:scale-95 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isGenerating ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    Generating Content...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-5 h-5 mr-2" />
+                    Generate with AI
+                  </>
+                )}
+              </button>
+          )}
 
           {isGenerating && (
             <div className="mt-3 flex items-center justify-center text-sm font-medium text-gray-500 bg-gray-50 py-2 rounded-lg border border-gray-100 animate-pulse">
@@ -557,6 +529,71 @@ export const ContentGenerator: React.FC = () => {
       </div>
 
       <PostingCalendar />
+
+      {/* Layout Editor Modal */}
+      {showLayoutEditor && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto">
+            <div className="relative max-w-6xl w-full bg-white rounded-xl shadow-2xl p-6 my-8">
+                <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-xl font-bold text-gray-800 flex items-center">
+                        <Layers className="w-6 h-6 mr-2 text-purple-600" />
+                        Interactive Layout Editor
+                    </h2>
+                    <button
+                        onClick={() => {
+                            setShowLayoutEditor(false);
+                            setGenerationMode('SCRATCH');
+                        }}
+                        className="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 rounded-full transition-colors"
+                    >
+                        <X className="w-6 h-6" />
+                    </button>
+                </div>
+
+                <LayoutEditor
+                    onSave={async (base64Image) => {
+                        setIsGenerating(true);
+                        setShowLayoutEditor(false);
+
+                        try {
+                            const result: any = await functionsService.generateContent(
+                                topic,
+                                platform,
+                                true, // includeImage
+                                'LAYOUT', // trigger layout logic in backend
+                                style,
+                                base64Image, // pass base64 image as bgUrl
+                                selectedVideo,
+                                selectedLogo,
+                                null,
+                                brandText,
+                                false, // animateWithAI
+                                null
+                            );
+
+                            if (result.success && result.data) {
+                                setGeneratedContent(result.data);
+                                if (result.image) {
+                                    setGeneratedImage(result.image);
+                                }
+                            } else {
+                                setGenerationError(result.error || result.message || 'Unknown error');
+                            }
+                        } catch (err: any) {
+                            setGenerationError(err.message || 'An unexpected error occurred.');
+                        } finally {
+                            setIsGenerating(false);
+                            setGenerationMode('SCRATCH');
+                        }
+                    }}
+                    onCancel={() => {
+                        setShowLayoutEditor(false);
+                        setGenerationMode('SCRATCH');
+                    }}
+                />
+            </div>
+        </div>
+      )}
 
       {/* Lightbox Modal */}
       {lightboxImage && (
