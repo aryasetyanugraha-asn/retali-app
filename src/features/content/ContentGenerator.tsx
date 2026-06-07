@@ -53,6 +53,7 @@ export const ContentGenerator: React.FC = () => {
   const [selectedComponents, setSelectedComponents] = useState<string[]>([]);
   const [brandText, setBrandText] = useState('');
   const [generatedVideo, setGeneratedVideo] = useState<string | null>(null);
+  const [customImagePrompt, setCustomImagePrompt] = useState('');
 
   useEffect(() => {
     const unsubscribe = dbService.subscribeToCollection('media_assets', (data) => {
@@ -115,7 +116,8 @@ export const ContentGenerator: React.FC = () => {
         selectedLogo,
         selectedComponents.length > 0 ? selectedComponents : null,
         brandText,
-        animateWithAI
+        animateWithAI,
+        customImagePrompt || null
       );
 
       if (result.success && result.data) {
@@ -311,6 +313,18 @@ export const ContentGenerator: React.FC = () => {
                     />
                   </div>
                 </div>
+
+                {generationMode === 'SCRATCH' && (
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Custom Image Prompt (Optional)</label>
+                    <textarea
+                      placeholder="e.g. A family praying in front of the Kaaba, golden hour lighting..."
+                      className="w-full bg-white/50 backdrop-blur-sm border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-purple-500 outline-none resize-none h-20 shadow-inner"
+                      value={customImagePrompt}
+                      onChange={(e) => setCustomImagePrompt(e.target.value)}
+                    />
+                  </div>
+                )}
 
                 {(generationMode === 'LAYOUT' || generationMode === 'VIDEO_WATERMARK') && (
                   <div className="space-y-3 pt-2 border-t border-gray-200">
