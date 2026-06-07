@@ -224,7 +224,7 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({ onSave, onCancel }) 
     }
   };
 
-  const handleExport = () => {
+  const exportAndSave = () => {
     if (stageRef.current) {
         selectShape(null); // Deselect before export to remove transformer boxes
         setTimeout(() => {
@@ -331,7 +331,7 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({ onSave, onCancel }) 
                 </button>
             )}
             <button
-                onClick={handleExport}
+                onClick={exportAndSave}
                 className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-medium py-2.5 px-4 rounded-lg transition-colors flex items-center justify-center"
             >
                 <Download className="w-4 h-4 mr-2" />
