@@ -28,7 +28,7 @@ export const generateAiReply = onCall({
   try {
     const { GoogleGenerativeAI } = require("@google/generative-ai");
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-    const model = genAI.getGenerativeModel({ model: "gemini-3.1-flash-preview" });
+    const model = genAI.getGenerativeModel({ model: "gemini-3-flash" });
 
     const systemPrompt = "Anda adalah seorang Customer Service Senior di sebuah Travel Umrah dan Haji yang profesional. Tugas Anda adalah membalas pesan calon jamaah. Baca riwayat chat ini dan buatkan SATU draf balasan yang sopan, empatik, persuasif, dan mengarahkan jamaah untuk segera melakukan DP (Down Payment) atau konsultasi lebih lanjut. Jangan gunakan bahasa yang kaku seperti robot. Gunakan emoji secukupnya.";
 
@@ -68,7 +68,7 @@ export const generateCampaignOptions = onCall({
   try {
     const { GoogleGenerativeAI } = require("@google/generative-ai");
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-    const model = genAI.getGenerativeModel({ model: "gemini-3.1-flash-preview" });
+    const model = genAI.getGenerativeModel({ model: "gemini-3-flash" });
     const prompt = `
       Act as a Digital Marketing Director for an Umrah & Hajj Travel Agency in Indonesia.
       You are tasked with generating a 6-month marketing roadmap.
@@ -166,7 +166,7 @@ export const generateMonthBreakdown = onCall({
   try {
     const { GoogleGenerativeAI } = require("@google/generative-ai");
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-    const model = genAI.getGenerativeModel({ model: "gemini-3.1-flash-preview" });
+    const model = genAI.getGenerativeModel({ model: "gemini-3-flash" });
     const prompt = `
       Act as a Social Media Specialist for an Umrah & Hajj Travel Agency.
       I need 12 specific post ideas for a particular month based on the following strategy:
@@ -250,7 +250,7 @@ export const generateAIContent = onCall({
     // 3. Construct the Prompt specifically for Umrah Context
     const { GoogleGenerativeAI } = require("@google/generative-ai");
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-    const model = genAI.getGenerativeModel({ model: "gemini-3.1-flash-preview" });
+    const model = genAI.getGenerativeModel({ model: "gemini-3-flash" });
 
     const prompt = `
       Act as an expert Social Media Specialist for an Umrah & Hajj Travel Agency in Indonesia.
