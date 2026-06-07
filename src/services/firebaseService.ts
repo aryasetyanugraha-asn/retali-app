@@ -143,6 +143,12 @@ export const functionsService = {
     return result.data;
   },
 
+  saveLayoutContent: async (base64Image: string) => {
+    const saveLayoutFn = httpsCallable(functions, 'saveLayoutContent', { timeout: 60000 });
+    const result = await saveLayoutFn({ base64Image });
+    return result.data;
+  },
+
   sendWhatsAppMessage: async (phoneNumber: string, text: string, conversationId: string) => {
     const sendWhatsAppMessageFn = httpsCallable(functions, 'sendWhatsAppMessage');
     const result = await sendWhatsAppMessageFn({ phoneNumber, text, conversationId });
