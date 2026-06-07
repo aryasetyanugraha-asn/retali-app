@@ -122,7 +122,8 @@ export const functionsService = {
     logoUrl?: string | null,
     componentUrls?: string[] | null,
     brandText?: string | null,
-    animateWithAI?: boolean
+    animateWithAI?: boolean,
+    customImagePrompt?: string | null
   ) => {
     const generateContentFn = httpsCallable(functions, 'generateContent', { timeout: 540000 });
     const result = await generateContentFn({
@@ -136,7 +137,8 @@ export const functionsService = {
       logoUrl,
       componentUrls,
       brandText,
-      animateWithAI
+      animateWithAI,
+      customImagePrompt
     });
     return result.data;
   },
