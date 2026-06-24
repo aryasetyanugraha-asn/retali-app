@@ -45,7 +45,7 @@ export async function generateImageFromScratch(prompt: string): Promise<string> 
   const endpoint = `projects/${project}/locations/${location}/publishers/${publisher}/models/${model}`;
 
   const instance = {
-    prompt: prompt,
+    prompt: `${prompt}. High-quality, professional photography, cinematic lighting, 8k, photorealistic. NO TEXT, NO LETTERS, NO NUMBERS, NO ALPHABET.`,
   };
   const instanceValue = helpers.toValue(instance);
   const instances = [instanceValue!];
@@ -130,6 +130,25 @@ export async function fetchImageBuffer(url: string): Promise<Buffer> {
 }
 
 /**
+ * Detects average brightness of a specific region in an image buffer.
+ * Returns 0-255 (0 = black, 255 = white).
+ */
+async function getRegionBrightness(image: Buffer, region: { left: number, top: number, width: number, height: number }): Promise<number> {
+  const sharp = require("sharp");
+  try {
+    const { data } = await sharp(image)
+      .extract(region)
+      .greyscale()
+      .resize(1, 1)
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    return data[0];
+  } catch (e) {
+    return 128; // Fallback to middle brightness
+  }
+}
+
+/**
  * Composites multiple assets into a final premium poster layout
  * with Smart Placement & Custom Typography.
  */
@@ -144,43 +163,97 @@ export async function createLayout(bgInput: string | Buffer, options: LayoutOpti
     if (Buffer.isBuffer(bgInput)) {
       bgBuffer = bgInput;
     } else if (bgInput.startsWith("http")) {
-      // Input is a URL
       bgBuffer = await fetchImageBuffer(bgInput);
     } else {
-      // Input is a base64 string (either with or without data uri prefix)
       const base64Data = bgInput.replace(/^data:image\/\w+;base64,/, "");
       bgBuffer = Buffer.from(base64Data, 'base64');
     }
+
+    // Ensure background is exactly the target size for accurate brightness sampling
+    bgBuffer = await sharp(bgBuffer)
+      .resize(width, height, { fit: 'cover', position: 'center' })
+      .toBuffer();
+
     let compositeArray: any[] = [];
 
     // 2. Setup Font & Teks Bawaan
     const title = options.brandText ? options.brandText.toUpperCase() : "";
     const website = "www.retali.id";
 
-    // 3. Membangun Template SVG Premium (Minimalis, Tidak Terlalu Ramai)
+    // 3. Membangun Template SVG Premium (High Contrast & Professional Typography)
+    const footerHeight = 350;
+    const footerBrightness = await getRegionBrightness(bgBuffer, {
+      left: 0,
+      top: height - footerHeight,
+      width: width,
+      height: footerHeight
+    });
+
+    const textColor = footerBrightness > 160 ? "#1A1A1A" : "#FFFFFF";
+    const accentColor = "#D4AF37"; // Gold accent for premium feel
+
     const svgOverlay = `
     <svg width="${width}" height="${height}">
       <defs>
-        <!-- Efek gradasi gelap halus dari bawah untuk menonjolkan teks dan komponen -->
-        <linearGradient id="glassGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" style="stop-color:rgba(0, 0, 0, 0.0);" />
-          <stop offset="40%" style="stop-color:rgba(0, 0, 0, 0.0);" />
-          <stop offset="100%" style="stop-color:rgba(0, 0, 0, 0.7);" />
+        <linearGradient id="bottomFade" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" style="stop-color:rgba(0,0,0,0);" />
+          <stop offset="100%" style="stop-color:${footerBrightness > 160 ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.8)'};" />
         </linearGradient>
+        <linearGradient id="topRightFade" x1="100%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" style="stop-color:rgba(0,0,0,0.5);" />
+          <stop offset="100%" style="stop-color:rgba(0,0,0,0);" />
+        </linearGradient>
+        <filter id="textShadow" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur in="SourceAlpha" stdDeviation="3" />
+          <feOffset dx="2" dy="2" result="offsetblur" />
+          <feComponentTransfer>
+            <feFuncA type="linear" slope="0.5" />
+          </feComponentTransfer>
+          <feMerge>
+            <feMergeNode />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
       </defs>
 
       <style>
-        /* Inject Font Montserrat dan Roboto - Ukuran lebih proporsional */
-        .title { fill: #FFFFFF; font-size: 52px; font-weight: 800; font-family: 'Montserrat', sans-serif; letter-spacing: 1px; }
-        .website { fill: #E2E8F0; font-size: 20px; font-weight: 500; font-family: 'Roboto', sans-serif; letter-spacing: 1.5px; opacity: 0.9; }
+        .title {
+          fill: ${textColor};
+          font-size: 64px;
+          font-weight: 900;
+          font-family: 'Philosopher', 'Montserrat', 'Roboto', sans-serif;
+          text-transform: uppercase;
+          letter-spacing: -1px;
+        }
+        .subtitle {
+          fill: ${accentColor};
+          font-size: 24px;
+          font-weight: 700;
+          font-family: 'Montserrat', sans-serif;
+          letter-spacing: 4px;
+          text-transform: uppercase;
+        }
+        .website {
+          fill: ${textColor};
+          font-size: 22px;
+          font-weight: 500;
+          font-family: 'Roboto', sans-serif;
+          opacity: 0.8;
+          letter-spacing: 2px;
+        }
       </style>
 
-      <!-- Panel Bayangan Bawah -->
-      <rect x="0" y="0" width="${width}" height="${height}" fill="url(#glassGradient)" />
+      <!-- Background Fades -->
+      <rect x="0" y="${height - footerHeight}" width="${width}" height="${footerHeight}" fill="url(#bottomFade)" />
+      <rect x="${width - 400}" y="0" width="400" height="250" fill="url(#topRightFade)" opacity="0.2" />
 
-      <!-- Penempatan Teks (Lebih minimalis) -->
-      ${title ? `<text x="50%" y="${height - 220}" text-anchor="middle" class="title">${title}</text>` : ''}
-      <text x="50%" y="${height - 180}" text-anchor="middle" class="website">🌍 ${website}</text>
+      <!-- Typography Layout -->
+      ${title ? `
+        <text x="50%" y="${height - 240}" text-anchor="middle" class="subtitle">Premium Journey</text>
+        <text x="50%" y="${height - 160}" text-anchor="middle" class="title" filter="url(#textShadow)">${title}</text>
+      ` : ''}
+
+      <text x="50%" y="${height - 80}" text-anchor="middle" class="website">🌍 ${website}</text>
     </svg>`;
 
     compositeArray.push({
@@ -189,18 +262,27 @@ export async function createLayout(bgInput: string | Buffer, options: LayoutOpti
       left: 0
     });
 
-    // 4. Posisi Logo Retali (Pojok Kanan Atas)
+    // 4. Adaptive Logo Logic (Pushed after SVG so it sits on top of the topRightFade)
     if (options.logoUrl) {
       try {
         const logoBuffer = await fetchImageBuffer(options.logoUrl);
-        const logoResized = await sharp(logoBuffer)
-          .resize({ width: 220, withoutEnlargement: true })
-          .toBuffer();
+        const logoWidth = 240;
+        const logoPadding = 60;
+
+        const brightness = await getRegionBrightness(bgBuffer, {
+          left: width - logoWidth - logoPadding,
+          top: logoPadding,
+          width: logoWidth,
+          height: 100
+        });
+
+        let processedLogo = sharp(logoBuffer).resize({ width: logoWidth, withoutEnlargement: true });
+        const logoResized = await processedLogo.toBuffer();
 
         compositeArray.push({
           input: logoResized,
-          top: 60,
-          left: width - 220 - 60, // Kanan Atas
+          top: logoPadding,
+          left: width - logoWidth - logoPadding, // Top Right
         });
       } catch (e) {
         logger.error("Gagal memuat logo:", e);

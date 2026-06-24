@@ -28,7 +28,7 @@ export const generateAiReply = onCall({
   try {
     const { GoogleGenerativeAI } = require("@google/generative-ai");
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-    const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     const systemPrompt = "Anda adalah seorang Customer Service Senior di sebuah Travel Umrah dan Haji yang profesional. Tugas Anda adalah membalas pesan calon jamaah. Baca riwayat chat ini dan buatkan SATU draf balasan yang sopan, empatik, persuasif, dan mengarahkan jamaah untuk segera melakukan DP (Down Payment) atau konsultasi lebih lanjut. Jangan gunakan bahasa yang kaku seperti robot. Gunakan emoji secukupnya.";
 
@@ -68,7 +68,7 @@ export const generateCampaignOptions = onCall({
   try {
     const { GoogleGenerativeAI } = require("@google/generative-ai");
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-    const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     const prompt = `
       Act as a Digital Marketing Director for an Umrah & Hajj Travel Agency in Indonesia.
       You are tasked with generating a 6-month marketing roadmap.
@@ -166,7 +166,7 @@ export const generateMonthBreakdown = onCall({
   try {
     const { GoogleGenerativeAI } = require("@google/generative-ai");
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-    const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     const prompt = `
       Act as a Social Media Specialist for an Umrah & Hajj Travel Agency.
       I need 12 specific post ideas for a particular month based on the following strategy:
@@ -250,7 +250,7 @@ export const generateAIContent = onCall({
     // 3. Construct the Prompt specifically for Umrah Context
     const { GoogleGenerativeAI } = require("@google/generative-ai");
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-    const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     const prompt = `
       Act as an expert Social Media Specialist for an Umrah & Hajj Travel Agency in Indonesia.
@@ -273,17 +273,31 @@ export const generateAIContent = onCall({
     const text = response.text();
 
     let imageBase64: string | undefined;
+    let expandedPrompt: string | undefined;
 
     if (includeImage) {
       try {
         if (generationMode === "SCRATCH") {
-            let imagePrompt = `Create a highly detailed, premium marketing poster for an Umrah and Hajj travel agency. Topic: ${topic}. Style: ${style}, elegant, high-end, incorporating subtle modern futuristic aesthetics, sleek 3D elements, glassmorphism accents, cinematic lighting, 8k resolution, hyper-realistic, photorealistic, visually stunning Islamic design. Ensure there is clean, negative space for text overlay.`;
+            // Prompt Expansion for Imagen 3.0
+            const expansionSystemPrompt = `
+              Act as a Creative Director for a premium Islamic Travel Agency.
+              Your goal is to expand a short topic or prompt into a highly detailed, visually stunning descriptive prompt for an AI image generator (Imagen 3.0).
 
-            if (customImagePrompt) {
-                imagePrompt = `${customImagePrompt}, photorealistic, 8k resolution, clean negative space for text overlay`;
-            }
+              CRITICAL RULES:
+              1. DO NOT include any text, letters, or words in the description. The image must be purely visual.
+              2. Focus on cinematic lighting, 8k resolution, photorealistic textures, and elegant Islamic architecture or atmosphere.
+              3. Ensure the description includes "clean negative space" (empty areas) on the top or bottom for text overlays.
+              4. Use descriptive words like: 'ethereal', 'majestic', 'tranquil', 'luxurious', 'high-contrast'.
+              5. Output ONLY the expanded description in English.
+            `;
 
-            const rawBase64 = await generateImageFromScratch(imagePrompt);
+            const userPromptForExpansion = customImagePrompt || `An elegant and premium scene about ${topic} for an Umrah and Hajj travel agency.`;
+            const expansionResult = await model.generateContent(`${expansionSystemPrompt}\n\nUser Input: ${userPromptForExpansion}`);
+            expandedPrompt = expansionResult.response.text().trim();
+
+            logger.info("Expanded Prompt:", expandedPrompt);
+
+            const rawBase64 = await generateImageFromScratch(expandedPrompt);
 
             if (animateWithAI) {
                 // Generate Video from Image Buffer
@@ -333,6 +347,7 @@ export const generateAIContent = onCall({
       success: true,
       data: text,
       image: imageBase64 ? imageBase64 : null,
+      expandedPrompt: expandedPrompt || null,
       timestamp: new Date().toISOString()
     };
 
