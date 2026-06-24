@@ -46,6 +46,7 @@ export const ContentGenerator: React.FC = () => {
 
   const [generatedContent, setGeneratedContent] = useState('');
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [expandedPrompt, setExpandedPrompt] = useState<string | null>(null);
 
   const [assets, setAssets] = useState<any[]>([]);
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
@@ -109,6 +110,7 @@ export const ContentGenerator: React.FC = () => {
     setGeneratedContent('');
     setGeneratedImage(null);
     setGeneratedVideo(null);
+    setExpandedPrompt(null);
 
     try {
       const result: any = await functionsService.generateContent(
@@ -133,6 +135,9 @@ export const ContentGenerator: React.FC = () => {
         }
         if (result.videoUrl) {
           setGeneratedVideo(result.videoUrl);
+        }
+        if (result.expandedPrompt) {
+            setExpandedPrompt(result.expandedPrompt);
         }
       } else {
         console.error('AI Generation failed:', result);
@@ -411,8 +416,21 @@ export const ContentGenerator: React.FC = () => {
 
           {/* Generated Result */}
           {(generatedContent || generatedImage || generatedVideo) && (
-            <div className="mt-6 animate-fade-in">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Generated Result</label>
+            <div className="mt-6 animate-fade-in space-y-6">
+              {expandedPrompt && (
+                <div className="bg-purple-50 border border-purple-100 rounded-xl p-4">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <Sparkles className="w-4 h-4 text-purple-600" />
+                    <span className="text-xs font-bold text-purple-700 uppercase tracking-wider">AI Expanded Image Prompt</span>
+                  </div>
+                  <p className="text-sm text-purple-900 italic leading-relaxed">
+                    "{expandedPrompt}"
+                  </p>
+                </div>
+              )}
+
+              <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Generated Result</label>
               <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
                 {generatedContent && (
                   <textarea
@@ -474,6 +492,7 @@ export const ContentGenerator: React.FC = () => {
                     Schedule Post
                   </button>
                 </div>
+              </div>
               </div>
             </div>
           )}
