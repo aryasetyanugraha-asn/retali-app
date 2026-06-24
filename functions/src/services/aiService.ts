@@ -297,7 +297,7 @@ export const generateAIContent = onCall({
 
             logger.info("Expanded Prompt:", expandedPrompt);
 
-            const rawBase64 = await generateImageFromScratch(expandedPrompt);
+            const rawBase64 = await generateImageFromScratch(expandedPrompt!);
 
             if (animateWithAI) {
                 // Generate Video from Image Buffer
