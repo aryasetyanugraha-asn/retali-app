@@ -269,13 +269,6 @@ export async function createLayout(bgInput: string | Buffer, options: LayoutOpti
         const logoWidth = 240;
         const logoPadding = 60;
 
-        const brightness = await getRegionBrightness(bgBuffer, {
-          left: width - logoWidth - logoPadding,
-          top: logoPadding,
-          width: logoWidth,
-          height: 100
-        });
-
         let processedLogo = sharp(logoBuffer).resize({ width: logoWidth, withoutEnlargement: true });
         const logoResized = await processedLogo.toBuffer();
 
