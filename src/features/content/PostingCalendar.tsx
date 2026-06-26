@@ -344,6 +344,7 @@ export const PostingCalendar: React.FC = () => {
                      <img
                        src={post.mediaUrls && post.mediaUrls.length > 0 ? post.mediaUrls[0] : post.imageUrl}
                        alt="Post visual"
+                       crossOrigin="anonymous"
                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                      />
                   )}

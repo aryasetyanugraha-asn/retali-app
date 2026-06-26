@@ -453,6 +453,7 @@ export const ContentGenerator: React.FC = () => {
                       <img
                         src={generatedImage}
                         alt="Generated Poster"
+                        crossOrigin="anonymous"
                         className="w-full shadow-sm"
                       />
                       <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
@@ -622,6 +623,7 @@ export const ContentGenerator: React.FC = () => {
             <img
               src={lightboxImage}
               alt="Generated Poster Full"
+              crossOrigin="anonymous"
               className="max-w-full max-h-[90vh] object-contain rounded-lg"
             />
           </div>

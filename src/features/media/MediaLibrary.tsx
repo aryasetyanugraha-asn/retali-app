@@ -285,7 +285,7 @@ export const MediaLibrary: React.FC = () => {
             <div key={asset.id} className="group relative bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
               <div className="aspect-square bg-gray-100 flex items-center justify-center overflow-hidden">
                 {asset.type === 'PHOTO' || asset.type === 'LOGO' || asset.type === 'COMPONENT' ? (
-                  <img src={asset.url} alt={asset.name} className="w-full h-full object-cover" />
+                  <img src={asset.url} alt={asset.name} crossOrigin="anonymous" className="w-full h-full object-cover" />
                 ) : (
                   <div className="flex flex-col items-center text-gray-400">
                     <Video className="w-10 h-10 mb-2" />
