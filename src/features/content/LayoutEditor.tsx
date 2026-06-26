@@ -295,6 +295,7 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({ onSave, onCancel }) 
                                 key={asset.id}
                                 src={asset.url}
                                 alt={asset.name}
+                                crossOrigin="anonymous"
                                 className="w-full h-16 object-cover rounded cursor-pointer hover:ring-2 hover:ring-purple-500"
                                 onClick={() => setBackground(asset.url)}
                             />
@@ -310,6 +311,7 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({ onSave, onCancel }) 
                                 key={asset.id}
                                 src={asset.url}
                                 alt={asset.name}
+                                crossOrigin="anonymous"
                                 className="w-full h-16 object-contain bg-white border border-gray-100 rounded cursor-pointer hover:ring-2 hover:ring-purple-500 p-1"
                                 onClick={() => addImage(asset.url)}
                             />
