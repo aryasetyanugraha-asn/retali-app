@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { functionsService, dbService } from '../../services/firebaseService';
+import { getCacheBustedUrl } from '../../lib/utils';
 import { PostingCalendar } from "./PostingCalendar";
 import { LayoutEditor } from './LayoutEditor';
 import {
@@ -451,7 +452,7 @@ export const ContentGenerator: React.FC = () => {
                       onClick={() => setLightboxImage(generatedImage)}
                     >
                       <img
-                        src={generatedImage}
+                        src={getCacheBustedUrl(generatedImage)}
                         alt="Generated Poster"
                         crossOrigin="anonymous"
                         className="w-full shadow-sm"
@@ -621,7 +622,7 @@ export const ContentGenerator: React.FC = () => {
               </button>
             </div>
             <img
-              src={lightboxImage}
+              src={getCacheBustedUrl(lightboxImage)}
               alt="Generated Poster Full"
               crossOrigin="anonymous"
               className="max-w-full max-h-[90vh] object-contain rounded-lg"

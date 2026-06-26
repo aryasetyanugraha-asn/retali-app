@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Stage, Layer, Image as KonvaImage, Transformer, Text } from 'react-konva';
 import useImage from 'use-image';
 import { dbService } from '../../services/firebaseService';
+import { getCacheBustedUrl } from '../../lib/utils';
 import { Download, Image as ImageIcon, Type, Trash2, Maximize } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -38,7 +39,7 @@ interface LayoutEditorProps {
 }
 
 const URLImage = ({ element, isSelected, onSelect, onChange }: any) => {
-  const [image] = useImage(element.src, 'anonymous');
+  const [image] = useImage(getCacheBustedUrl(element.src), 'anonymous');
   const shapeRef = useRef<any>(null);
   const trRef = useRef<any>(null);
 
@@ -293,7 +294,7 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({ onSave, onCancel }) 
                         {assets.filter(a => a.type === 'PHOTO').map(asset => (
                             <img
                                 key={asset.id}
-                                src={asset.url}
+                                src={getCacheBustedUrl(asset.url)}
                                 alt={asset.name}
                                 crossOrigin="anonymous"
                                 className="w-full h-16 object-cover rounded cursor-pointer hover:ring-2 hover:ring-purple-500"
@@ -309,7 +310,7 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({ onSave, onCancel }) 
                         {assets.filter(a => a.type === 'LOGO' || a.type === 'COMPONENT').map(asset => (
                             <img
                                 key={asset.id}
-                                src={asset.url}
+                                src={getCacheBustedUrl(asset.url)}
                                 alt={asset.name}
                                 crossOrigin="anonymous"
                                 className="w-full h-16 object-contain bg-white border border-gray-100 rounded cursor-pointer hover:ring-2 hover:ring-purple-500 p-1"
