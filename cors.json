@@ -1,6 +1,6 @@
 [
   {
-    "origin": ["http://localhost:5173", "https://localhost:5173"],
+    "origin": ["http://localhost:5173", "https://localhost:5173", "https://retali.id"],
     "method": ["GET"],
     "maxAgeSeconds": 3600
   }
