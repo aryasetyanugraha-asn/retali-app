@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { dbService } from '../../services/firebaseService';
 import { storage } from '../../lib/firebase';
+import { getCacheBustedUrl } from '../../lib/utils';
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
 import { useAuth } from '../../context/AuthContext';
 import { useRole } from '../../context/RoleContext';
@@ -285,7 +286,7 @@ export const MediaLibrary: React.FC = () => {
             <div key={asset.id} className="group relative bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
               <div className="aspect-square bg-gray-100 flex items-center justify-center overflow-hidden">
                 {asset.type === 'PHOTO' || asset.type === 'LOGO' || asset.type === 'COMPONENT' ? (
-                  <img src={asset.url} alt={asset.name} crossOrigin="anonymous" className="w-full h-full object-cover" />
+                  <img src={getCacheBustedUrl(asset.url)} alt={asset.name} crossOrigin="anonymous" className="w-full h-full object-cover" />
                 ) : (
                   <div className="flex flex-col items-center text-gray-400">
                     <Video className="w-10 h-10 mb-2" />
@@ -296,7 +297,7 @@ export const MediaLibrary: React.FC = () => {
                 {/* Overlay Actions */}
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                   <button
-                    onClick={() => window.open(asset.url, '_blank')}
+                    onClick={() => window.open(getCacheBustedUrl(asset.url), '_blank')}
                     className="p-2 bg-white rounded-full text-gray-700 hover:text-emerald-600 transition-colors"
                   >
                     <ImageIcon className="w-4 h-4" />

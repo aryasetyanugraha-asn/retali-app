@@ -1,7 +1,13 @@
 [
   {
-    "origin": ["http://localhost:5173", "https://localhost:5173", "https://retali.id"],
-    "method": ["GET"],
+    "origin": [
+      "http://localhost:5173",
+      "https://localhost:5173",
+      "https://retali.id",
+      "https://www.retali.id"
+    ],
+    "method": ["GET", "HEAD", "OPTIONS"],
+    "responseHeader": ["Content-Type", "Access-Control-Allow-Origin"],
     "maxAgeSeconds": 3600
   }
 ]
