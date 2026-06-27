@@ -16,7 +16,8 @@ import {
   Megaphone,
   Menu,
   X,
-  Library
+  Library,
+  FolderHeart
 } from 'lucide-react';
 import { useRole, UserRole } from '../../context/RoleContext';
 import { useAuth } from '../../context/AuthContext';
@@ -145,6 +146,7 @@ export const Layout: React.FC = () => {
             <NavGroupHeader title="Marketing & Content" theme="purple" />
             <NavItem to="/content" icon={PenTool} label="Content AI" theme="purple" />
             <NavItem to="/campaigns" icon={Megaphone} label="Campaign Planner" theme="purple" />
+            <NavItem to="/campaign-library" icon={FolderHeart} label="Campaign Library" theme="purple" />
             <NavItem to="/schedule" icon={Calendar} label="Jadwal Posting" theme="purple" />
             {role === 'PUSAT' && (
               <NavItem to="/media" icon={Library} label="Media Library" theme="purple" />
@@ -215,6 +217,7 @@ export const Layout: React.FC = () => {
               {location.pathname === '/inbox' && 'Pesan Masuk'}
               {location.pathname === '/content' && 'Content Generator'}
               {location.pathname === '/campaigns' && 'Campaign Planner'}
+              {location.pathname === '/campaign-library' && 'Campaign Library'}
               {location.pathname === '/schedule' && 'Jadwal Posting'}
               {location.pathname === '/virtuallive' && 'Virtual Live Studio'}
               {location.pathname === '/settings' && 'Settings & Integrations'}
