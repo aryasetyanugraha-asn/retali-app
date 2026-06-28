@@ -11,6 +11,7 @@ import { SettingsPage } from './features/settings/SettingsPage';
 import { MitraList } from './features/mitra/MitraList';
 import { MarketInsights } from './features/insights/MarketInsights';
 import { CampaignPlanner } from './features/campaigns/CampaignPlanner';
+import { CampaignLibrary } from './features/campaigns/CampaignLibrary';
 import { MediaLibrary } from './features/media/MediaLibrary';
 import { RoleProvider } from './context/RoleContext';
 import { AuthProvider } from './context/AuthContext';
@@ -39,6 +40,7 @@ function App() {
               <Route path="inbox" element={<UnifiedInbox />} />
               <Route path="content" element={<ContentGenerator />} />
               <Route path="campaigns" element={<CampaignPlanner />} />
+              <Route path="campaign-library" element={<CampaignLibrary />} />
               <Route path="schedule" element={<SchedulePage />} />
               <Route path="virtuallive" element={<VirtualLive />} />
               <Route path="settings" element={<SettingsPage />} />

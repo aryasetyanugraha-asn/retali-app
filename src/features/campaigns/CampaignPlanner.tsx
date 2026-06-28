@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { functionsService, dbService } from '../../services/firebaseService';
 import { useAuth } from '../../context/AuthContext';
 import { useUserProfile } from '../../hooks/useUserProfile';
-import { Sparkles, Check, Loader2, Plus, Send } from 'lucide-react';
+import { Sparkles, Check, Loader2, Plus, Send, Copy, Download, FileDown } from 'lucide-react';
 import { Timestamp } from 'firebase/firestore';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 interface MonthBreakdown {
   month_name: string;
@@ -45,6 +47,7 @@ export const CampaignPlanner: React.FC = () => {
 
   const [monthPosts, setMonthPosts] = useState<Record<string, PostIdea[]>>({});
   const [loadingMonths, setLoadingMonths] = useState<Record<string, boolean>>({});
+  const [downloading, setDownloading] = useState(false);
   const [schedulingMonths, setSchedulingMonths] = useState<Record<string, boolean>>({});
 
   // Track custom budget per option (A, B, C)
@@ -109,8 +112,13 @@ export const CampaignPlanner: React.FC = () => {
         status: "DRAFT"
       };
 
-      const docRef = await dbService.addDocument(`users/${user.uid}/campaigns`, payload);
-      setCampaignId(docRef.id);
+      if (campaignId) {
+        // If we already saved one (e.g. user changed mind), update it
+        await dbService.updateDocument(`users/${user.uid}/campaigns`, campaignId, payload);
+      } else {
+        const docRef = await dbService.addDocument(`users/${user.uid}/campaigns`, payload);
+        setCampaignId(docRef.id);
+      }
     } catch (error) {
       console.error('Error saving campaign:', error);
       alert('Failed to save campaign. Please try again.');
@@ -118,7 +126,7 @@ export const CampaignPlanner: React.FC = () => {
   };
 
   const handleBreakdownMonth = async (monthName: string, monthlyTheme: string, keyGoal: string) => {
-    if (!selectedOption || !options) return;
+    if (!selectedOption || !options || !user || !campaignId) return;
 
     const optionKey = `option_${selectedOption.toLowerCase()}` as keyof typeof options;
     const optionTheme = options[optionKey].theme;
@@ -128,7 +136,13 @@ export const CampaignPlanner: React.FC = () => {
     try {
       const result: any = await functionsService.generateMonthBreakdown(title, optionTheme, monthName, monthlyTheme, keyGoal);
       if (result.success && result.data) {
-        setMonthPosts(prev => ({ ...prev, [monthName]: result.data }));
+        const posts = result.data;
+        setMonthPosts(prev => ({ ...prev, [monthName]: posts }));
+
+        // Save posts to the campaign document so they are persisted in the library
+        await dbService.updateDocument(`users/${user.uid}/campaigns`, campaignId, {
+          [`monthPosts.${monthName}`]: posts
+        });
       }
     } catch (error) {
       console.error('Error breaking down month:', error);
@@ -136,6 +150,50 @@ export const CampaignPlanner: React.FC = () => {
     } finally {
       setLoadingMonths(prev => ({ ...prev, [monthName]: false }));
     }
+  };
+
+  const handleDownloadPDF = async () => {
+    const element = document.getElementById('campaign-report');
+    if (!element) return;
+
+    setDownloading(true);
+    try {
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        logging: false
+      });
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`Campaign_Report_${title.replace(/\s+/g, '_')}.pdf`);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Failed to generate PDF report.');
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const handleCopyCaption = (caption: string) => {
+    navigator.clipboard.writeText(caption);
+    alert('Caption copied to clipboard!');
+  };
+
+  const handleDownloadImagePrompt = (prompt: string, index: number) => {
+    const blob = new Blob([prompt], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `image_prompt_post_${index + 1}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const handlePushToSchedule = async (monthName: string) => {
@@ -271,29 +329,62 @@ export const CampaignPlanner: React.FC = () => {
                     <button
                       onClick={(e) => { e.stopPropagation(); handleBreakdownMonth(mb.month_name, mb.monthly_theme, mb.key_goal); }}
                       disabled={loadingMonths[mb.month_name]}
-                      className="text-sm bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 flex items-center justify-center w-full disabled:opacity-50"
+                      className="text-sm bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 flex items-center justify-center w-full disabled:opacity-50 data-html2canvas-ignore"
                     >
                       {loadingMonths[mb.month_name] ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
                       Breakdown Month
                     </button>
                   ) : (
                     <div>
-                      <div className="bg-white p-3 rounded border border-gray-200 text-sm max-h-40 overflow-y-auto mb-3">
+                      <div className="grid grid-cols-2 gap-2 data-html2canvas-ignore">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handlePushToSchedule(mb.month_name); }}
+                          disabled={schedulingMonths[mb.month_name]}
+                          className="text-xs bg-blue-600 text-white px-2 py-2 rounded-lg hover:bg-blue-700 flex items-center justify-center disabled:opacity-50"
+                          title="Schedule automatically"
+                        >
+                          {schedulingMonths[mb.month_name] ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Send className="w-3 h-3 mr-1" />}
+                          Push Schedule
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            alert("Use the 'Copy' and 'Download' icons on each post below to post manually.");
+                          }}
+                          className="text-xs bg-gray-600 text-white px-2 py-2 rounded-lg hover:bg-gray-700 flex items-center justify-center"
+                          title="Do it yourself"
+                        >
+                          <Plus className="w-3 h-3 mr-1" />
+                          Manual Post
+                        </button>
+                      </div>
+
+                      <div className="bg-white p-3 rounded border border-gray-200 text-sm max-h-60 overflow-y-auto mb-3 mt-3">
                         {monthPosts[mb.month_name].map((p, i) => (
-                          <div key={i} className="mb-2 pb-2 border-b border-gray-100 last:border-0 last:pb-0">
-                            <p className="font-medium">Post {i+1}</p>
-                            <p className="text-gray-600 text-xs mt-1 line-clamp-2">{p.caption}</p>
+                          <div key={i} className="mb-3 pb-3 border-b border-gray-100 last:border-0 last:pb-0">
+                            <div className="flex justify-between items-start">
+                              <p className="font-medium text-xs">Post {i+1}</p>
+                              <div className="flex space-x-1 data-html2canvas-ignore">
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleCopyCaption(p.caption); }}
+                                  className="p-1 hover:bg-gray-100 rounded text-blue-600"
+                                  title="Copy Caption"
+                                >
+                                  <Copy className="w-3 h-3" />
+                                </button>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleDownloadImagePrompt(p.image_prompt, i); }}
+                                  className="p-1 hover:bg-gray-100 rounded text-emerald-600"
+                                  title="Download Image Prompt"
+                                >
+                                  <Download className="w-3 h-3" />
+                                </button>
+                              </div>
+                            </div>
+                            <p className="text-gray-600 text-[10px] mt-1 line-clamp-2 italic">{p.caption}</p>
                           </div>
                         ))}
                       </div>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handlePushToSchedule(mb.month_name); }}
-                        disabled={schedulingMonths[mb.month_name]}
-                        className="text-sm bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center justify-center w-full disabled:opacity-50"
-                      >
-                         {schedulingMonths[mb.month_name] ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
-                        Push to Schedule
-                      </button>
                     </div>
                   )}
                 </div>
@@ -307,10 +398,24 @@ export const CampaignPlanner: React.FC = () => {
 
   return (
     <div className="max-w-6xl mx-auto space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Campaign Planner</h1>
-        <p className="text-gray-500 mt-1">AI-powered 6-month marketing roadmap generator.</p>
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Campaign Planner</h1>
+          <p className="text-gray-500 mt-1">AI-powered 6-month marketing roadmap generator.</p>
+        </div>
+        {selectedOption && (
+           <button
+             onClick={handleDownloadPDF}
+             disabled={downloading}
+             className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 flex items-center shadow-sm disabled:opacity-50"
+           >
+             {downloading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileDown className="w-4 h-4 mr-2" />}
+             Download Report (PDF)
+           </button>
+        )}
       </div>
+
+      <div>
 
       {step === 1 && (
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 max-w-2xl">
@@ -350,15 +455,36 @@ export const CampaignPlanner: React.FC = () => {
 
       {step === 3 && options && (
         <div className="space-y-6">
-          <h2 className="text-xl font-semibold">Step 2: Select a Strategy</h2>
-          {selectedOption && <p className="text-emerald-600 font-medium">Strategy {selectedOption} selected. You can now breakdown each month.</p>}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {renderOptionCard('A', options.option_a)}
-            {renderOptionCard('B', options.option_b)}
-            {renderOptionCard('C', options.option_c)}
-          </div>
+          {!selectedOption ? (
+            <>
+              <h2 className="text-xl font-semibold">Step 2: Select a Strategy</h2>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {renderOptionCard('A', options.option_a)}
+                {renderOptionCard('B', options.option_b)}
+                {renderOptionCard('C', options.option_c)}
+              </div>
+            </>
+          ) : (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-semibold">Selected Strategy: Option {selectedOption}</h2>
+                <button
+                  onClick={() => setSelectedOption(null)}
+                  className="text-sm text-gray-500 hover:text-emerald-600 underline"
+                >
+                  Change Strategy
+                </button>
+              </div>
+              <div id="campaign-report" className="bg-white p-8 rounded-xl shadow-sm border border-gray-200">
+                 {selectedOption === 'A' && renderOptionCard('A', options.option_a)}
+                 {selectedOption === 'B' && renderOptionCard('B', options.option_b)}
+                 {selectedOption === 'C' && renderOptionCard('C', options.option_c)}
+              </div>
+            </div>
+          )}
         </div>
       )}
+      </div>
     </div>
   );
 };
