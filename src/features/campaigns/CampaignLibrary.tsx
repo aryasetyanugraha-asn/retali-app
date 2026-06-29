@@ -218,7 +218,7 @@ export const CampaignLibrary: React.FC = () => {
                         <div className="flex flex-wrap gap-1 mt-2">
                           {Object.entries(campaign.budget_plan.budget_allocation || {}).map(([key, val]) => (
                             <span key={key} className="text-[10px] bg-white text-blue-600 px-2 py-0.5 rounded-full border border-blue-100">
-                              {key}: {val}%
+                              {key}: {String(val)}%
                             </span>
                           ))}
                         </div>

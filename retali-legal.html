@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Legal & Privacy - Mitra Retali</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind Typography Plugin for better text formatting -->
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            500: '#10b981', // Emerald 500
+                            600: '#059669', // Emerald 600
+                            700: '#047857', // Emerald 700
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Hide sections by default */
+        .page-section { display: none; }
+        .page-section.active { display: block; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans antialiased min-h-screen flex flex-col">
+
+    <!-- Navigation -->
+    <nav class="bg-brand-700 text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center gap-3">
+                    <span class="font-bold text-xl tracking-wider">RETALI</span>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#privacy-policy" class="nav-link px-3 py-2 rounded-md text-sm font-medium hover:bg-brand-600 transition-colors" data-target="privacy-policy">Privacy Policy</a>
+                        <a href="#terms-of-service" class="nav-link px-3 py-2 rounded-md text-sm font-medium hover:bg-brand-600 transition-colors" data-target="terms-of-service">Terms of Service</a>
+                        <a href="#data-deletion" class="nav-link px-3 py-2 rounded-md text-sm font-medium hover:bg-brand-600 transition-colors" data-target="data-deletion">Data Deletion</a>
+                    </div>
+                </div>
+                <!-- Mobile menu button -->
+                <div class="md:hidden flex items-center">
+                    <select id="mobile-nav" class="bg-brand-600 text-white text-sm rounded-md focus:ring-brand-500 focus:border-brand-500 block w-full p-2 border-none">
+                        <option value="#privacy-policy">Privacy Policy</option>
+                        <option value="#terms-of-service">Terms of Service</option>
+                        <option value="#data-deletion">Data Deletion</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-grow max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full">
+        <div class="bg-white shadow rounded-lg p-6 sm:p-10">
+
+            <!-- 1. PRIVACY POLICY -->
+            <section id="privacy-policy" class="page-section prose prose-brand max-w-none">
+                <h1 class="text-3xl font-bold text-gray-900 border-b pb-4">Kebijakan Privasi Aplikasi Mitra Retali</h1>
+                <p class="text-sm text-gray-500 italic mt-0">Terakhir Diperbarui: 19 Juni 2026</p>
+
+                <h3>1. Pendahuluan</h3>
+                <p>PT. Retali Mustajab Travel ("Kami" atau "Retali") menghargai privasi Anda. Kebijakan Privasi ini menjelaskan bagaimana kami mengumpulkan, menggunakan, dan melindungi informasi pribadi pengguna ("Mitra", "Cabang", "Pusat") melalui aplikasi Mitra Retali CRM & Lead Generation. Aplikasi ini terintegrasi dengan layanan pihak ketiga seperti Meta Platforms (Facebook, Instagram, WhatsApp), TikTok, dan layanan Google.</p>
+
+                <h3>2. Informasi yang Kami Kumpulkan</h3>
+                <p>Saat Anda menggunakan aplikasi kami, kami dapat mengumpulkan data berikut:</p>
+                <ul>
+                    <li><strong>Data Profil Mitra:</strong> Nama, nomor telepon, detail rekening bank, dan status media sosial.</li>
+                    <li><strong>Data Autentikasi:</strong> Alamat email, kata sandi, dan data otorisasi dari Google Sign-In atau Meta/TikTok OAuth.</li>
+                    <li><strong>Data Prospek (Leads) & Jamaah:</strong> Data jamaah aktif, jadwal paket (seperti paket umroh Ramadhan, akhir tahun, dll.), status pembayaran, dan dokumen kelengkapan ibadah.</li>
+                    <li><strong>Data Komunikasi:</strong> Pesan masuk dari Meta Lead Ads, Direct Message (DM) Instagram/Facebook, dan WhatsApp Cloud API.</li>
+                </ul>
+
+                <h3>3. Bagaimana Kami Menggunakan Informasi Anda</h3>
+                <p>Informasi yang dikumpulkan digunakan untuk:</p>
+                <ul>
+                    <li>Mendukung fitur Customer Relationship Management (CRM), memantau prospek, dan mengelola jamaah aktif yang mendaftar melalui Program BUPI (Bayar Umroh Pakai Ikhtiar).</li>
+                    <li>Mengotomatiskan komunikasi dan membalas pesan secara responsif menggunakan bantuan AI dari riwayat obrolan.</li>
+                    <li>Menerbitkan dan menjadwalkan konten promosi ke akun media sosial Anda (Facebook, Instagram, TikTok) sesuai dengan izin yang Anda berikan.</li>
+                </ul>
+
+                <h3>4. Berbagi Informasi dengan Pihak Ketiga</h3>
+                <p>Kami tidak menjual data Anda. Namun, agar aplikasi berfungsi penuh, data dapat diproses oleh infrastruktur backend kami (Firebase/Google Cloud) dan disinkronkan dengan Meta Graph API (seperti <code>pages_manage_posts</code>, <code>instagram_content_publish</code>) berdasarkan token akses yang Anda berikan.</p>
+
+                <h3>5. Hubungi Kami</h3>
+                <p>Jika Anda memiliki pertanyaan tentang kebijakan privasi ini, silakan hubungi kami di:</p>
+                <div class="bg-gray-50 p-4 rounded-md border border-gray-200">
+                    <p class="font-bold m-0 text-brand-700">PT. RETALI MUSTAJAB TRAVEL</p>
+                    <p class="text-sm m-0">(Izin PPIU No.U291 Tahun 2021)</p>
+                    <p class="m-0 mt-2"><strong>Alamat:</strong> LA Mansion Town House, Jl. Raya Lenteng Agung No.3, RT.12/RW.8, Jagakarsa, Jakarta Selatan</p>
+                    <p class="m-0"><strong>Telepon:</strong> 0823-3366-6999 (Admin Syahra)</p>
+                </div>
+            </section>
+
+            <!-- 2. TERMS OF SERVICE -->
+            <section id="terms-of-service" class="page-section prose prose-brand max-w-none">
+                <h1 class="text-3xl font-bold text-gray-900 border-b pb-4">Syarat dan Ketentuan Layanan Aplikasi Mitra Retali</h1>
+                <p class="text-sm text-gray-500 italic mt-0">Terakhir Diperbarui: 19 Juni 2026</p>
+
+                <h3>1. Penerimaan Syarat</h3>
+                <p>Dengan mendaftar dan menggunakan aplikasi Mitra Retali CRM & Lead Generation, Anda setuju untuk terikat dengan Syarat dan Ketentuan ini. Aplikasi ini disediakan oleh PT. Retali Mustajab Travel untuk mendukung Program Kemitraan BUPI.</p>
+
+                <h3>2. Akun dan Hak Akses</h3>
+                <ul>
+                    <li>Aplikasi ini menggunakan sistem Role-Based Access Control (RBAC) dengan tingkatan: PUSAT (Admin), CABANG, dan MITRA. Anda wajib menjaga kerahasiaan kredensial login (Email/Google) Anda.</li>
+                    <li>Mitra bertanggung jawab atas keabsahan data prospek (leads) dan jamaah yang dimasukkan ke dalam sistem.</li>
+                </ul>
+
+                <h3>3. Penggunaan Integrasi Media Sosial (Meta, WhatsApp, TikTok)</h3>
+                <ul>
+                    <li>Aplikasi ini menyediakan fitur penjadwalan (Schedule View), publikasi otomatis, dan kotak masuk terpadu (Unified Inbox) yang terhubung dengan akun Meta dan WhatsApp Anda.</li>
+                    <li>Dengan menghubungkan akun Meta Anda, Anda memberikan izin (seperti <code>pages_show_list</code>, <code>instagram_basic</code>) kepada aplikasi untuk membaca dan memposting konten, serta menangani webhook atas nama Anda.</li>
+                    <li>Anda dilarang menyalahgunakan fitur pembuatan konten (Content Generator berbasis AI) untuk membuat materi yang melanggar hukum, SARA, atau kebijakan pihak ketiga (Meta/Google).</li>
+                </ul>
+
+                <h3>4. Batasan Tanggung Jawab</h3>
+                <p>PT. Retali Mustajab Travel tidak bertanggung jawab atas pemblokiran akun media sosial Anda oleh pihak Meta atau TikTok yang diakibatkan oleh pelanggaran kebijakan platform tersebut yang dilakukan oleh Anda sendiri.</p>
+
+                <h3>5. Penghentian Layanan</h3>
+                <p>Pihak PUSAT (Admin) berhak menangguhkan atau mencabut hak akses MITRA atau CABANG apabila ditemukan indikasi penyalahgunaan data jamaah, penipuan, atau pelanggaran Syarat dan Ketentuan ini.</p>
+            </section>
+
+            <!-- 3. USER DATA DELETION -->
+            <section id="data-deletion" class="page-section prose prose-brand max-w-none">
+                <h1 class="text-3xl font-bold text-gray-900 border-b pb-4">Instruksi Penghapusan Data Pengguna <br><span class="text-xl text-gray-500 font-normal">(User Data Deletion)</span></h1>
+
+                <p>Sesuai dengan kebijakan privasi Facebook/Meta dan komitmen kami terhadap perlindungan data, Anda memiliki hak untuk meminta penghapusan data aktivitas dan data pribadi Anda dari sistem aplikasi Mitra Retali CRM & Lead Generation.</p>
+                <p>Jika Anda ingin menghapus akun Anda beserta seluruh data prospek (leads) yang terhubung, atau sekadar ingin memutuskan koneksi aplikasi Mitra Retali dari akun Facebook Anda, silakan ikuti panduan di bawah ini:</p>
+
+                <h3>Opsi 1: Menghapus Akses Aplikasi dari Facebook Anda (Disconnect)</h3>
+                <p>Jika Anda hanya ingin memutuskan integrasi Meta Graph API agar aplikasi tidak lagi memiliki akses ke Halaman atau Instagram Anda:</p>
+                <ol>
+                    <li>Masuk ke akun Facebook Anda.</li>
+                    <li>Buka menu <strong>Pengaturan & Privasi (Settings & Privacy)</strong> > <strong>Pengaturan (Settings)</strong>.</li>
+                    <li>Cari dan klik menu <strong>Aplikasi dan Situs Web (Apps and Websites)</strong>.</li>
+                    <li>Temukan aplikasi <strong>Mitra Retali</strong> dalam daftar.</li>
+                    <li>Klik <strong>Hapus (Remove)</strong>. Langkah ini akan mencabut semua akses (seperti <code>pages_manage_posts</code> dan <code>instagram_content_publish</code>) aplikasi kami ke akun Anda.</li>
+                </ol>
+
+                <h3>Opsi 2: Penghapusan Penuh Data Akun dari Sistem Retali</h3>
+                <p>Aplikasi Mitra Retali menggunakan arsitektur Firebase Firestore. Untuk menghapus akun Mitra Anda beserta profil, data perbankan, riwayat obrolan, dan informasi login Anda secara permanen dari database kami:</p>
+                <ol>
+                    <li>Hubungi Admin Pusat Retali melalui WhatsApp di <strong>0823-3366-6999 (Admin Syahra)</strong>.</li>
+                    <li>Gunakan format pesan berikut:
+                        <blockquote class="bg-gray-100 p-4 rounded italic border-l-4 border-brand-500">
+                            "Halo Admin, saya <strong>[Nama Anda]</strong> dengan Email terdaftar <strong>[Email Anda]</strong> ingin mengajukan penghapusan akun Mitra Retali dan seluruh data saya dari sistem."
+                        </blockquote>
+                    </li>
+                    <li>Pihak PUSAT (Admin) akan memproses permohonan Anda dan menghapus akun (Authentication) serta rekam jejak Anda dari Firestore dalam waktu maksimal 3x24 jam hari kerja.</li>
+                </ol>
+
+                <h3>Kontak Bantuan</h3>
+                <p>Jika Anda mengalami kendala dalam proses penghapusan data, Anda dapat mengunjungi kantor kami:</p>
+                <div class="bg-gray-50 p-4 rounded-md border border-gray-200">
+                    <p class="font-bold m-0 text-brand-700">PT. RETALI MUSTAJAB TRAVEL</p>
+                    <p class="m-0 mt-2">LA Mansion Town House, Jl. Raya Lenteng Agung No.3, RT.12/RW.8, Lenteng Agung, Kec. Jagakarsa, Kota Jakarta Selatan.</p>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-6 mt-auto">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-gray-400">
+            &copy; 2026 PT. Retali Mustajab Travel. Hak Cipta Dilindungi Undang-Undang.
+        </div>
+    </footer>
+
+    <!-- JavaScript for Routing -->
+    <script>
+        function showPage() {
+            // Get the hash from URL (default to privacy-policy if empty)
+            let hash = window.location.hash || '#privacy-policy';
+
+            // Hide all sections
+            document.querySelectorAll('.page-section').forEach(sec => {
+                sec.classList.remove('active');
+            });
+
+            // Show target section
+            const targetSection = document.querySelector(hash);
+            if(targetSection) {
+                targetSection.classList.add('active');
+            }
+
+            // Update desktop nav styling
+            document.querySelectorAll('.nav-link').forEach(link => {
+                if(link.getAttribute('href') === hash) {
+                    link.classList.add('bg-brand-900');
+                    link.classList.remove('hover:bg-brand-600');
+                } else {
+                    link.classList.remove('bg-brand-900');
+                    link.classList.add('hover:bg-brand-600');
+                }
+            });
+
+            // Update mobile select
+            const mobileSelect = document.getElementById('mobile-nav');
+            if(mobileSelect.value !== hash) {
+                mobileSelect.value = hash;
+            }
+        }
+
+        // Listen for hash changes
+        window.addEventListener('hashchange', showPage);
+
+        // Handle mobile dropdown changes
+        document.getElementById('mobile-nav').addEventListener('change', function(e) {
+            window.location.hash = e.target.value;
+        });
+
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', showPage);
+    </script>
+</body>
+</html>
